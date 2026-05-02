@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --items-blue: #0057ff;
+  --items-blue-hover: #004be0;
+  --items-white: #ffffff;
+  --items-canvas: #ffffff;
+  --items-surface: #ffffff;
+  --items-dim: #e8e8e8;
+  --items-placeholder: #c9c9c9;
+  --items-line-soft: rgba(0, 87, 255, 0.28);
+  --items-max-width: 1280px;
+  --items-sidebar-width: 280px;
+  --items-desktop-padding: 32px;
+  --items-mobile-padding: 28px;
+  --items-grid-gap: 24px;
+
+  --background: 0 0% 100%;
+  --foreground: 220 100% 50%;
+  --border: 220 100% 50%;
+  --primary: 220 100% 50%;
+  --primary-foreground: 0 0% 100%;
+}
+
+[data-theme="dark"] {
+  --items-blue: #6f9aff;
+  --items-blue-hover: #9ab8ff;
+  --items-canvas: #06070a;
+  --items-surface: #0b0d12;
+  --items-dim: #151821;
+  --items-placeholder: #252934;
+  --items-line-soft: rgba(111, 154, 255, 0.34);
+
+  --background: 225 25% 3%;
+  --foreground: 220 100% 72%;
+  --border: 220 100% 72%;
+  --primary: 220 100% 72%;
+  --primary-foreground: 0 0% 100%;
+}
+
+* {
+  box-sizing: border-box;
+  border-color: hsl(var(--border));
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--items-canvas);
+  color: var(--items-blue);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-avenir), Avenir, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--items-blue);
+  color: var(--items-white);
+}
+
+@layer components {
+  .items-frame {
+    width: min(calc(100vw - 32px), var(--items-max-width));
+    margin: 24px auto;
+    border: 1px solid var(--items-blue);
+    background: var(--items-surface);
+  }
+
+  .items-mobile-frame {
+    width: min(100%, 430px);
+    min-height: 100vh;
+    margin: 0 auto;
+    border-left: 1px solid var(--items-blue);
+    border-right: 1px solid var(--items-blue);
+    background: var(--items-surface);
+    overflow-x: hidden;
+  }
+
+  .items-dim {
+    background: var(--items-dim);
+  }
+
+  .items-plus-marker {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    pointer-events: none;
+  }
+
+  .items-plus-marker::before,
+  .items-plus-marker::after {
+    position: absolute;
+    content: "";
+    background: var(--items-blue);
+  }
+
+  .items-plus-marker::before {
+    width: 52px;
+    height: 4px;
+    top: 24px;
+    left: 0;
+  }
+
+  .items-plus-marker::after {
+    width: 4px;
+    height: 52px;
+    left: 24px;
+    top: 0;
+  }
+}

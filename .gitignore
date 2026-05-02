@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next.js
+.next/
+out/
+
+# production
+dist/
+build/
+
+# environment
+.env
+.env*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local caches
+.eslintcache
+*.tsbuildinfo
+
+# deployment
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# local design/reference inputs
+uiux_references/
+
+# unused local font package files
+fonts/Avenir Book/
+fonts/Avenir Light/
+fonts/readme.html
