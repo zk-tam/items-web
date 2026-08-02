@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    // File uploads are submitted through Server Actions. Keep this above the
-    // 8 MB application-level image limit to account for multipart overhead.
+    // Item media uploads go directly to storage. This only needs to cover the
+    // single artist profile-image upload (8 MB) plus multipart overhead.
     serverActions: {
       bodySizeLimit: "10mb"
     }

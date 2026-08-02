@@ -5,8 +5,16 @@ export type UploadedImage = {
   publicUrl: string;
 };
 
+export type SignedItemMediaUpload = {
+  path: string;
+  token: string;
+  bucket: string;
+  resumableEndpoint: string;
+};
+
 export interface StorageProvider {
   publicUrl(path: string): string;
   uploadImage(area: StorageArea, file: File): Promise<UploadedImage>;
+  createSignedCatalogMediaUpload(area: StorageArea, mimeType: string): Promise<SignedItemMediaUpload>;
   remove(path: string): Promise<void>;
 }

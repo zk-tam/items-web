@@ -1,7 +1,9 @@
-export type CatalogImage = {
+export type CatalogMedia = {
   id?: string;
   src: string;
   alt: string;
+  mediaType: "image" | "video";
+  mimeType: string;
   storagePath?: string;
   sortOrder?: number;
 };
@@ -26,6 +28,7 @@ export type CatalogArtist = {
   image?: string;
   imageAlt?: string;
   imagePath?: string;
+  media: CatalogMedia[];
   links: CatalogArtistLink[];
   initiallyExpanded?: boolean;
   isPublished?: boolean;
@@ -51,7 +54,7 @@ export type CatalogItem = {
   seoTitle?: string;
   seoDescription?: string;
   priceNote?: string;
-  images: CatalogImage[];
+  media: CatalogMedia[];
   orderMessage: string;
   isPublished?: boolean;
   archivedAt?: string | null;

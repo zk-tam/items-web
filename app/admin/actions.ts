@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
-import { addItemImages, archiveArtist, archiveItem, createOrder, deleteDraftOrder, saveArtist, saveItem, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
-import { isChecked, optionalText, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalUrl, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
+import { archiveArtist, archiveItem, createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
+import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
+import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalUrl, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 
 function asOptionalFile(value: FormDataEntryValue | null) {
   return typeof File !== "undefined" && value instanceof File && value.size > 0 ? value : null;
+}
+
+function isManagedStoragePath(path: string | null) {
+  return Boolean(path && !path.startsWith("/") && !path.startsWith("http://") && !path.startsWith("https://"));
 }
 
 function parseArtistInput(formData: FormData, profileImagePath: string | null) {
@@ -78,18 +83,39 @@ export async function createArtistAction(formData: FormData) {
   await requireAdmin();
   let imagePath: string | null = null;
   const file = asOptionalFile(formData.get("profileImage"));
-  if (file) imagePath = (await getStorageProvider().uploadImage("artists", file)).path;
-  const artistId = await saveArtist(parseArtistInput(formData, imagePath));
+  const storage = file ? getStorageProvider() : null;
+  if (file) imagePath = (await storage!.uploadImage("artists", file)).path;
+  let artistId: string;
+  try {
+    artistId = await saveArtist(parseArtistInput(formData, imagePath));
+    await synchronizeArtistMediaFromForm(artistId, formData);
+  } catch (error) {
+    if (imagePath) await storage?.remove(imagePath).catch(() => undefined);
+    throw error;
+  }
   revalidateCatalog();
   redirect(`/admin/artists/${artistId}`);
 }
 
 export async function updateArtistAction(id: string, formData: FormData) {
   await requireAdmin();
+  const previousImagePath = optionalText(formData.get("previousProfileImagePath"));
   let imagePath = optionalText(formData.get("existingProfileImagePath"));
   const file = asOptionalFile(formData.get("profileImage"));
-  if (file) imagePath = (await getStorageProvider().uploadImage("artists", file)).path;
-  await saveArtist(parseArtistInput(formData, imagePath), id);
+  const storage = file || (isManagedStoragePath(previousImagePath) && previousImagePath !== imagePath) ? getStorageProvider() : null;
+  if (file) imagePath = (await storage!.uploadImage("artists", file)).path;
+  try {
+    await saveArtist(parseArtistInput(formData, imagePath), id);
+    await synchronizeArtistMediaFromForm(id, formData);
+  } catch (error) {
+    if (file && imagePath) await storage?.remove(imagePath).catch(() => undefined);
+    throw error;
+  }
+  if (isManagedStoragePath(previousImagePath) && previousImagePath !== imagePath) {
+    // The catalog record is already correct; avoid reporting a failed save if
+    // best-effort cleanup of an old storage object is temporarily unavailable.
+    await storage!.remove(previousImagePath!).catch(() => undefined);
+  }
   revalidateCatalog();
   redirect("/admin/artists");
 }
@@ -101,19 +127,44 @@ export async function archiveArtistAction(id: string) {
   redirect("/admin/artists");
 }
 
-async function uploadItemImages(itemId: string, formData: FormData) {
-  const files = formData.getAll("images").map((value) => asOptionalFile(value)).filter((file): file is File => Boolean(file));
-  if (files.length === 0) return;
-  const storage = getStorageProvider();
-  const altText = optionalText(formData.get("imageAlt"));
-  const uploads = await Promise.all(files.map((file) => storage.uploadImage("items", file)));
-  await addItemImages(itemId, uploads.map((upload) => ({ storagePath: upload.path, altText })));
+async function synchronizeItemMediaFromForm(itemId: string, formData: FormData) {
+  const mediaOrder = parseItemMediaOrder(formData.get("mediaOrder"));
+  if (!mediaOrder) return;
+
+  const removedPaths = await synchronizeItemMedia(itemId, mediaOrder);
+  const managedRemovedPaths = removedPaths.filter((path) => isManagedStoragePath(path));
+  if (managedRemovedPaths.length > 0) {
+    // Database metadata is authoritative. A transient cleanup failure leaves
+    // only an unreachable object and must not make the catalog save fail.
+    try {
+      const storage = getStorageProvider();
+      await Promise.all(managedRemovedPaths.map((path) => storage.remove(path)));
+    } catch {
+      // Best-effort cleanup is safe to retry outside this request.
+    }
+  }
+}
+
+async function synchronizeArtistMediaFromForm(artistId: string, formData: FormData) {
+  const mediaOrder = parseArtistMediaOrder(formData.get("artistMediaOrder"));
+  if (!mediaOrder) return;
+
+  const removedPaths = await synchronizeArtistMedia(artistId, mediaOrder);
+  const managedRemovedPaths = removedPaths.filter((path) => isManagedStoragePath(path));
+  if (managedRemovedPaths.length > 0) {
+    try {
+      const storage = getStorageProvider();
+      await Promise.all(managedRemovedPaths.map((path) => storage.remove(path)));
+    } catch {
+      // The row removal succeeded; storage cleanup can be retried safely.
+    }
+  }
 }
 
 export async function createItemAction(formData: FormData) {
   await requireAdmin();
   const itemId = await saveItem(parseItemInput(formData));
-  await uploadItemImages(itemId, formData);
+  await synchronizeItemMediaFromForm(itemId, formData);
   revalidateCatalog();
   redirect("/admin/items");
 }
@@ -121,9 +172,32 @@ export async function createItemAction(formData: FormData) {
 export async function updateItemAction(id: string, formData: FormData) {
   await requireAdmin();
   await saveItem(parseItemInput(formData), id);
-  await uploadItemImages(id, formData);
+  await synchronizeItemMediaFromForm(id, formData);
   revalidateCatalog();
   redirect("/admin/items");
+}
+
+export async function requestCatalogMediaUploadAction(area: CatalogMediaArea, requests: ItemMediaUploadRequest[]) {
+  await requireAdmin();
+  if (area !== "artists" && area !== "items") throw new Error("Media area is invalid.");
+  if (!Array.isArray(requests) || requests.length === 0 || requests.length > MAX_ITEM_MEDIA) {
+    throw new Error(`Choose between 1 and ${MAX_ITEM_MEDIA} media files.`);
+  }
+  const normalizedRequests = requests.map(validateItemMediaUploadRequest);
+  const storage = getStorageProvider();
+  return Promise.all(normalizedRequests.map((request) => storage.createSignedCatalogMediaUpload(area, request.mimeType)));
+}
+
+export async function discardUnattachedCatalogMediaAction(area: CatalogMediaArea, paths: string[]) {
+  await requireAdmin();
+  if (area !== "artists" && area !== "items") return;
+  if (!Array.isArray(paths)) return;
+  const candidates = [...new Set(paths.filter((path): path is string => typeof path === "string" && isDirectCatalogMediaPath(area, path)))];
+  if (candidates.length === 0) return;
+  const attachedPaths = new Set(area === "artists" ? await listAttachedArtistMediaPaths(candidates) : await listAttachedItemMediaPaths(candidates));
+  const unattachedPaths = candidates.filter((path) => !attachedPaths.has(path));
+  if (unattachedPaths.length === 0) return;
+  await Promise.all(unattachedPaths.map((path) => getStorageProvider().remove(path).catch(() => undefined)));
 }
 
 export async function archiveItemAction(id: string) {

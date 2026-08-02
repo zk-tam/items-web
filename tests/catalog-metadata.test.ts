@@ -9,6 +9,7 @@ describe("catalog metadata", () => {
       role: "Artist",
       seoTitle: "Artist Name — Works",
       seoDescription: "A concise artist description.",
+      media: [],
       links: []
     });
 
@@ -26,7 +27,7 @@ describe("catalog metadata", () => {
       description: "Item description.",
       specs: [],
       size: "One size",
-      images: [],
+      media: [],
       orderMessage: "Hello"
     });
 

@@ -13,7 +13,7 @@ type ProductCardProps = {
 
 export function ProductCard({ product, priority = false }: ProductCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const image = product.images[0];
+  const media = product.media[0];
   const details = product.preview ?? [product.description, `Size: ${product.size}`];
 
   return (
@@ -21,16 +21,17 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       <div className="group flex h-full flex-col">
         <Link href={`/products/${product.slug}`} className="block">
           <div className="relative aspect-[4/5] overflow-hidden rounded-item bg-items-placeholder">
-            {image && (
+            {media?.mediaType === "image" && (
               <Image
-                src={image.src}
-                alt={image.alt}
+                src={media.src}
+                alt={media.alt}
                 fill
                 loading={priority ? "eager" : "lazy"}
                 sizes="(max-width: 768px) 100vw, 25vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
             )}
+            {media?.mediaType === "video" && <video src={media.src} muted playsInline preload="metadata" className="h-full w-full object-cover" aria-label={media.alt || `${product.name} video`} />}
           </div>
         </Link>
 

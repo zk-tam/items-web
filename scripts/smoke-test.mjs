@@ -28,9 +28,9 @@ try {
      join pg_namespace on pg_namespace.oid = pg_class.relnamespace
      where nspname = 'public'
        and relname = any($1::text[])`,
-    [["artists", "artist_links", "items", "item_images", "orders", "order_lines", "order_documents", "admin_users", "admin_sessions"]]
+    [["artists", "artist_links", "artist_media", "items", "item_media", "orders", "order_lines", "order_documents", "admin_users", "admin_sessions"]]
   );
-  if (rls.rows.length !== 9 || rls.rows.some((row) => !row.relrowsecurity)) {
+  if (rls.rows.length !== 10 || rls.rows.some((row) => !row.relrowsecurity)) {
     throw new Error("Expected RLS to be enabled on every ITEMS application table.");
   }
 
@@ -42,12 +42,41 @@ try {
       [artistSlug]
     );
     const artistId = artist.rows[0].id;
+    const artistImagePath = `audit/${token}-artist.jpg`;
+    const artistVideoPath = `audit/${token}-artist.mp4`;
+    await client.query(
+      `insert into artist_media (artist_id, storage_path, media_type, mime_type, alt_text, sort_order)
+       values ($1, $2, 'image', 'image/jpeg', 'Artist portrait detail', 1), ($1, $3, 'video', 'video/mp4', 'Artist video', 0)`,
+      [artistId, artistImagePath, artistVideoPath]
+    );
+    const orderedArtistMedia = await client.query(
+      `select storage_path, media_type, mime_type, alt_text, sort_order from artist_media where artist_id = $1 order by sort_order`,
+      [artistId]
+    );
+    if (orderedArtistMedia.rows.length !== 2 || orderedArtistMedia.rows[0]?.storage_path !== artistVideoPath || orderedArtistMedia.rows[1]?.alt_text !== "Artist portrait detail") {
+      throw new Error("Artist media order, type, or alt text did not persist correctly.");
+    }
     const item = await client.query(
       `insert into items (artist_id, slug, name, description, seo_title, seo_description, price_cents, stock_count)
        values ($1, $2, 'Audit Item', 'Rollback-only smoke test', 'Audit Item | ITEMS', 'Rollback-only SEO metadata test.', 1250, 3) returning id`,
       [artistId, itemSlug]
     );
     const itemId = item.rows[0].id;
+    const firstImagePath = `audit/${token}-first.jpg`;
+    const secondImagePath = `audit/${token}-second.jpg`;
+    const videoPath = `audit/${token}-video.mp4`;
+    await client.query(
+      `insert into item_media (item_id, storage_path, media_type, mime_type, alt_text, sort_order)
+       values ($1, $2, 'image', 'image/jpeg', 'First image', 1), ($1, $3, 'image', 'image/jpeg', 'Second image', 0), ($1, $4, 'video', 'video/mp4', 'Item video', 2)`,
+      [itemId, firstImagePath, secondImagePath, videoPath]
+    );
+    const orderedImages = await client.query(
+      `select storage_path, media_type, mime_type, alt_text, sort_order from item_media where item_id = $1 order by sort_order`,
+      [itemId]
+    );
+    if (orderedImages.rows.length !== 3 || orderedImages.rows[0]?.storage_path !== secondImagePath || orderedImages.rows[1]?.alt_text !== "First image" || orderedImages.rows[2]?.media_type !== "video" || orderedImages.rows[2]?.mime_type !== "video/mp4") {
+      throw new Error("Item media order, type, or alt text did not persist correctly.");
+    }
     const order = await client.query(
       `insert into orders (order_number, customer_name, status, payment_status)
        values ($1, 'Audit Customer', 'awaiting_payment', 'unpaid') returning id`,
@@ -114,7 +143,7 @@ try {
     throw new Error("catalog-images is missing or is not public.");
   }
 
-  console.log("Integration smoke test passed: schema, RLS, SEO metadata, constraints, order snapshots, and image bucket.");
+  console.log("Integration smoke test passed: schema, RLS, SEO metadata, artist/item media ordering, media types, constraints, order snapshots, and image bucket.");
 } finally {
   await client.end();
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getItemMediaMimeType, itemMediaMimeTypes } from "@/lib/admin/item-media";
 import type { StorageArea, StorageProvider, UploadedImage } from "@/lib/storage/types";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -36,6 +37,14 @@ function storageConfig() {
 function publicUrl(baseUrl: string, bucket: string, path: string) {
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
   return `${baseUrl.replace(/\/$/, "")}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
+}
+
+function resumableUploadEndpoint(baseUrl: string) {
+  const url = new URL(baseUrl);
+  if (url.hostname.endsWith(".supabase.co") && !url.hostname.endsWith(".storage.supabase.co")) {
+    url.hostname = url.hostname.replace(/\.supabase\.co$/, ".storage.supabase.co");
+  }
+  return `${url.origin}/storage/v1/upload/resumable/sign`;
 }
 
 export function getStoragePublicUrl(path: string) {
@@ -90,6 +99,26 @@ export class SupabaseStorageProvider implements StorageProvider {
     }
 
     return { path, publicUrl: this.publicUrl(path) };
+  }
+
+  async createSignedCatalogMediaUpload(area: StorageArea, mimeType: string) {
+    const type = getItemMediaMimeType(mimeType);
+    if (!type) {
+      throw new Error("Media must be JPEG, PNG, WebP, GIF, or MP4.");
+    }
+
+    const path = `${area}/${randomUUID()}.${itemMediaMimeTypes[type].extension}`;
+    const { data, error } = await this.client.storage.from(this.bucket).createSignedUploadUrl(path);
+    if (error || !data) {
+      throw new Error(`Could not authorize media upload: ${error?.message ?? "unknown error"}`);
+    }
+
+    return {
+      path,
+      token: data.token,
+      bucket: this.bucket,
+      resumableEndpoint: resumableUploadEndpoint(this.url)
+    };
   }
 
   async remove(path: string) {

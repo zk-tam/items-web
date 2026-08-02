@@ -1,6 +1,6 @@
 import type { CatalogArtist as Artist, CatalogItem as Product } from "@/lib/catalog/types";
 import { ArtistBio } from "@/components/artist/ArtistBio";
-import { ProductImageStage } from "@/components/product/ProductImageStage";
+import { CatalogMediaGallery } from "@/components/catalog/CatalogMediaGallery";
 import { WhatsappOrderButton } from "@/components/ui/WhatsappOrderButton";
 
 type ProductDetailProps = {
@@ -12,7 +12,7 @@ export function ProductDetail({ product, artist }: ProductDetailProps) {
   return (
     <article className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.8fr)] lg:gap-16">
       <div className="-mx-7 overflow-hidden px-7 lg:mx-0 lg:overflow-visible lg:px-0">
-        <ProductImageStage image={product.images[0]} />
+        <CatalogMediaGallery media={product.media} label={`${product.name} media`} emptyLabel="No product media" />
       </div>
 
       <div className="space-y-10 lg:pt-10">

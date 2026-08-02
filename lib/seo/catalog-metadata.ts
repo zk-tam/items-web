@@ -32,7 +32,7 @@ export function artistMetadata(artist: CatalogArtist): Metadata {
 export function itemMetadata(item: CatalogItem): Metadata {
   const title = valueOrFallback(item.seoTitle, item.name);
   const description = valueOrFallback(item.seoDescription, item.description);
-  const image = item.images[0];
+  const image = item.media.find((media) => media.mediaType === "image");
 
   return {
     title,

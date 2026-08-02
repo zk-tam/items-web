@@ -1,4 +1,5 @@
 import { SEO_DESCRIPTION_MAX_LENGTH, SEO_TITLE_MAX_LENGTH } from "../seo/constants";
+import { getItemMediaMimeType, isDirectCatalogMediaPath, itemMediaMimeTypes, MAX_ITEM_MEDIA, MAX_ITEM_MEDIA_ALT_LENGTH, type CatalogMediaArea, type ItemMediaOrderEntry } from "./item-media";
 
 type LinkInput = { label: string; url: string };
 
@@ -104,6 +105,63 @@ export function parseLinks(value: FormDataEntryValue | null): LinkInput[] {
 
     return { label: label || inferredLabel, url: validUrl };
   });
+}
+
+function parseCatalogMediaOrder(value: FormDataEntryValue | null, area: CatalogMediaArea): ItemMediaOrderEntry[] | null {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("Media order is invalid.");
+  }
+
+  if (!Array.isArray(parsed) || parsed.length > MAX_ITEM_MEDIA) {
+    throw new Error(`A ${area === "artists" ? "artist" : "item"} can have at most ${MAX_ITEM_MEDIA} media files.`);
+  }
+
+  const identifiers = new Set<string>();
+  return parsed.map((entry): ItemMediaOrderEntry => {
+    if (!entry || typeof entry !== "object") {
+      throw new Error("Media order is invalid.");
+    }
+
+    const candidate = entry as Record<string, unknown>;
+    const altText = typeof candidate.altText === "string" ? candidate.altText.trim() || null : null;
+    if (altText && altText.length > MAX_ITEM_MEDIA_ALT_LENGTH) {
+      throw new Error(`Media alt text must be ${MAX_ITEM_MEDIA_ALT_LENGTH} characters or fewer.`);
+    }
+
+    if (candidate.kind === "existing" && typeof candidate.id === "string" && candidate.id.length > 0) {
+      const identifier = `existing:${candidate.id}`;
+      if (identifiers.has(identifier)) throw new Error("Media order contains duplicates.");
+      identifiers.add(identifier);
+      return { kind: "existing", id: candidate.id, altText };
+    }
+
+    const mediaType = candidate.mediaType === "image" || candidate.mediaType === "video" ? candidate.mediaType : null;
+    const mimeType = typeof candidate.mimeType === "string" ? getItemMediaMimeType(candidate.mimeType) : null;
+    const storagePath = typeof candidate.storagePath === "string" ? candidate.storagePath : null;
+    if (candidate.kind === "new" && mediaType && mimeType && storagePath && isDirectCatalogMediaPath(area, storagePath) && itemMediaMimeTypes[mimeType].kind === mediaType) {
+      const identifier = `new:${storagePath}`;
+      if (identifiers.has(identifier)) throw new Error("Media order contains duplicates.");
+      identifiers.add(identifier);
+      return { kind: "new", storagePath, mediaType, mimeType, altText };
+    }
+
+    throw new Error("Media order is invalid.");
+  });
+}
+
+export function parseItemMediaOrder(value: FormDataEntryValue | null) {
+  return parseCatalogMediaOrder(value, "items");
+}
+
+export function parseArtistMediaOrder(value: FormDataEntryValue | null) {
+  return parseCatalogMediaOrder(value, "artists");
 }
 
 export function isChecked(value: FormDataEntryValue | null) {

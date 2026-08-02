@@ -3,6 +3,7 @@ import "server-only";
 import type { PoolClient } from "pg";
 import { queryRow, queryRows, withTransaction } from "@/lib/db/postgres";
 import { inventoryTransition } from "@/lib/admin/order-state";
+import { MAX_ITEM_MEDIA, type ItemMediaKind, type ItemMediaMimeType, type ItemMediaOrderEntry } from "@/lib/admin/item-media";
 
 export type AdminArtist = {
   id: string;
@@ -22,6 +23,7 @@ export type AdminArtist = {
   sortOrder: number;
   itemCount?: number;
   links: Array<{ label: string; url: string; sortOrder: number }>;
+  media: Array<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>;
 };
 
 export type AdminItem = {
@@ -44,7 +46,7 @@ export type AdminItem = {
   isPublished: boolean;
   archivedAt: Date | null;
   sortOrder: number;
-  images: Array<{ id: string; storagePath: string; altText: string | null; sortOrder: number }>;
+  media: Array<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>;
 };
 
 export type OrderStatus = "draft" | "awaiting_payment" | "processing" | "shipped" | "completed" | "cancelled";
@@ -96,11 +98,11 @@ export type DocumentSnapshot = {
   totalCents: number;
 };
 
-export type ArtistInput = Omit<AdminArtist, "id" | "archivedAt" | "itemCount" | "links"> & {
+export type ArtistInput = Omit<AdminArtist, "id" | "archivedAt" | "itemCount" | "links" | "media"> & {
   links: Array<{ label: string; url: string }>;
 };
 
-export type ItemInput = Omit<AdminItem, "id" | "artistName" | "archivedAt" | "images">;
+export type ItemInput = Omit<AdminItem, "id" | "artistName" | "archivedAt" | "media">;
 
 export async function listAdminArtists() {
   return (await queryRows<AdminArtist>(
@@ -108,7 +110,7 @@ export async function listAdminArtists() {
             artist.website_url as "websiteUrl", artist.seo_title as "seoTitle", artist.seo_description as "seoDescription", artist.profile_image_path as "profileImagePath",
             artist.profile_image_alt as "profileImageAlt", artist.initially_expanded as "initiallyExpanded",
             artist.is_published as "isPublished", artist.archived_at as "archivedAt", artist.sort_order as "sortOrder",
-            count(item.id)::int as "itemCount", '[]'::jsonb as links
+            count(item.id)::int as "itemCount", '[]'::jsonb as links, '[]'::jsonb as media
      from artists artist
      left join items item on item.artist_id = artist.id and item.archived_at is null
      group by artist.id
@@ -121,7 +123,7 @@ export async function getAdminArtist(id: string) {
     `select id, slug, name, role, description, email, website_url as "websiteUrl", seo_title as "seoTitle", seo_description as "seoDescription",
             profile_image_path as "profileImagePath", profile_image_alt as "profileImageAlt",
             initially_expanded as "initiallyExpanded", is_published as "isPublished", archived_at as "archivedAt", sort_order as "sortOrder",
-            '[]'::jsonb as links
+            '[]'::jsonb as links, '[]'::jsonb as media
      from artists where id = $1`,
     [id]
   );
@@ -130,7 +132,11 @@ export async function getAdminArtist(id: string) {
     `select label, url, sort_order as "sortOrder" from artist_links where artist_id = $1 order by sort_order, label`,
     [id]
   )) ?? [];
-  return { ...artist, links };
+  const media = (await queryRows<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>(
+    `select id, storage_path as "storagePath", alt_text as "altText", media_type as "mediaType", mime_type as "mimeType", sort_order as "sortOrder" from artist_media where artist_id = $1 order by sort_order`,
+    [id]
+  )) ?? [];
+  return { ...artist, links, media };
 }
 
 export async function saveArtist(input: ArtistInput, id?: string) {
@@ -166,7 +172,7 @@ export async function listAdminItems() {
   return (await queryRows<AdminItem>(
     `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.preview, item.specs,
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.price_cents as "priceCents", item.currency, item.stock_count as "stockCount", item.order_message as "orderMessage",
-            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as images
+            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id
      order by item.archived_at nulls first, item.sort_order asc, item.name asc`
   )) ?? [];
@@ -185,16 +191,16 @@ export async function getAdminItem(id: string) {
   const item = await queryRow<AdminItem>(
     `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.preview, item.specs,
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.price_cents as "priceCents", item.currency, item.stock_count as "stockCount", item.order_message as "orderMessage",
-            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as images
+            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id where item.id = $1`,
     [id]
   );
   if (!item) return null;
-  const images = (await queryRows<{ id: string; storagePath: string; altText: string | null; sortOrder: number }>(
-    `select id, storage_path as "storagePath", alt_text as "altText", sort_order as "sortOrder" from item_images where item_id = $1 order by sort_order`,
+  const media = (await queryRows<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>(
+    `select id, storage_path as "storagePath", alt_text as "altText", media_type as "mediaType", mime_type as "mimeType", sort_order as "sortOrder" from item_media where item_id = $1 order by sort_order`,
     [id]
   )) ?? [];
-  return { ...item, images };
+  return { ...item, media };
 }
 
 export async function saveItem(input: ItemInput, id?: string) {
@@ -215,14 +221,104 @@ export async function saveItem(input: ItemInput, id?: string) {
   return result.id;
 }
 
-export async function addItemImages(itemId: string, images: Array<{ storagePath: string; altText: string | null }>) {
-  await withTransaction(async (client) => {
-    const existing = await client.query<{ max: number | null }>(`select max(sort_order) from item_images where item_id = $1`, [itemId]);
-    const start = (existing.rows[0]?.max ?? -1) + 1;
-    for (const [index, image] of images.entries()) {
-      await client.query(`insert into item_images (item_id, storage_path, alt_text, sort_order) values ($1, $2, $3, $4)`, [itemId, image.storagePath, image.altText, start + index]);
+export async function synchronizeItemMedia(itemId: string, order: ItemMediaOrderEntry[]) {
+  if (order.length > MAX_ITEM_MEDIA) {
+    throw new Error(`An item can have at most ${MAX_ITEM_MEDIA} media files.`);
+  }
+
+  return withTransaction(async (client) => {
+    const existing = await client.query<{ id: string; storagePath: string }>(
+      `select id, storage_path as "storagePath" from item_media where item_id = $1 order by sort_order for update`,
+      [itemId]
+    );
+    const existingById = new Map(existing.rows.map((image) => [image.id, image]));
+    const orderedExisting = order.filter((entry): entry is Extract<ItemMediaOrderEntry, { kind: "existing" }> => entry.kind === "existing");
+
+    if (orderedExisting.some((entry) => !existingById.has(entry.id))) {
+      throw new Error("One or more existing media files do not belong to this item.");
     }
+
+    const keptIds = new Set(orderedExisting.map((entry) => entry.id));
+    const removedPaths = existing.rows.filter((image) => !keptIds.has(image.id)).map((image) => image.storagePath);
+    if (removedPaths.length > 0) {
+      await client.query(`delete from item_media where item_id = $1 and id <> all($2::uuid[])`, [itemId, [...keptIds]]);
+    }
+
+    for (const [sortOrder, entry] of order.entries()) {
+      if (entry.kind === "existing") {
+        await client.query(
+          `update item_media set sort_order = $3, alt_text = $4 where id = $1 and item_id = $2`,
+          [entry.id, itemId, sortOrder, entry.altText]
+        );
+        continue;
+      }
+
+      await client.query(
+        `insert into item_media (item_id, storage_path, media_type, mime_type, alt_text, sort_order) values ($1, $2, $3, $4, $5, $6)`,
+        [itemId, entry.storagePath, entry.mediaType, entry.mimeType, entry.altText, sortOrder]
+      );
+    }
+
+    return removedPaths;
   });
+}
+
+export async function listAttachedItemMediaPaths(paths: string[]) {
+  if (paths.length === 0) return [];
+  return ((await queryRows<{ storagePath: string }>(
+    `select storage_path as "storagePath" from item_media where storage_path = any($1::text[])`,
+    [paths]
+  )) ?? []).map((row) => row.storagePath);
+}
+
+export async function synchronizeArtistMedia(artistId: string, order: ItemMediaOrderEntry[]) {
+  if (order.length > MAX_ITEM_MEDIA) {
+    throw new Error(`An artist can have at most ${MAX_ITEM_MEDIA} media files.`);
+  }
+
+  return withTransaction(async (client) => {
+    const existing = await client.query<{ id: string; storagePath: string }>(
+      `select id, storage_path as "storagePath" from artist_media where artist_id = $1 order by sort_order for update`,
+      [artistId]
+    );
+    const existingById = new Map(existing.rows.map((media) => [media.id, media]));
+    const orderedExisting = order.filter((entry): entry is Extract<ItemMediaOrderEntry, { kind: "existing" }> => entry.kind === "existing");
+
+    if (orderedExisting.some((entry) => !existingById.has(entry.id))) {
+      throw new Error("One or more existing media files do not belong to this artist.");
+    }
+
+    const keptIds = new Set(orderedExisting.map((entry) => entry.id));
+    const removedPaths = existing.rows.filter((media) => !keptIds.has(media.id)).map((media) => media.storagePath);
+    if (removedPaths.length > 0) {
+      await client.query(`delete from artist_media where artist_id = $1 and id <> all($2::uuid[])`, [artistId, [...keptIds]]);
+    }
+
+    for (const [sortOrder, entry] of order.entries()) {
+      if (entry.kind === "existing") {
+        await client.query(
+          `update artist_media set sort_order = $3, alt_text = $4 where id = $1 and artist_id = $2`,
+          [entry.id, artistId, sortOrder, entry.altText]
+        );
+        continue;
+      }
+
+      await client.query(
+        `insert into artist_media (artist_id, storage_path, media_type, mime_type, alt_text, sort_order) values ($1, $2, $3, $4, $5, $6)`,
+        [artistId, entry.storagePath, entry.mediaType, entry.mimeType, entry.altText, sortOrder]
+      );
+    }
+
+    return removedPaths;
+  });
+}
+
+export async function listAttachedArtistMediaPaths(paths: string[]) {
+  if (paths.length === 0) return [];
+  return ((await queryRows<{ storagePath: string }>(
+    `select storage_path as "storagePath" from artist_media where storage_path = any($1::text[])`,
+    [paths]
+  )) ?? []).map((row) => row.storagePath);
 }
 
 export async function archiveItem(id: string) {

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Instagram } from "lucide-react";
 import type { CatalogArtist as Artist, CatalogItem as Product } from "@/lib/catalog/types";
+import { CatalogMediaGallery } from "@/components/catalog/CatalogMediaGallery";
 import { getInstagramUrl, isInstagramUrl } from "@/lib/catalog/socials";
 import { ProductGrid } from "@/components/product/ProductGrid";
 
@@ -63,6 +64,15 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
           </div>
         </div>
       </section>
+
+      {artist.media.length > 0 && (
+        <section className="space-y-6 border-t border-items-blue pt-9">
+          <h2 className="text-[22px] font-black leading-tight lg:text-[24px]">More from {artist.name}</h2>
+          <div className="mx-auto max-w-[620px]">
+            <CatalogMediaGallery media={artist.media} label={`${artist.name} gallery`} />
+          </div>
+        </section>
+      )}
 
       {products.length > 0 && (
         <section className="space-y-8 border-t border-items-blue pt-9">

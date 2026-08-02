@@ -19,6 +19,7 @@ type ArtistRow = {
   archivedAt: Date | null;
   sortOrder: number;
   links: Array<{ id: string; label: string; href: string; sortOrder: number }> | null;
+  media: Array<{ id: string; storagePath: string; alt: string | null; mediaType: "image" | "video"; mimeType: string; sortOrder: number }> | null;
 };
 
 type ItemRow = {
@@ -42,7 +43,7 @@ type ItemRow = {
   isPublished: boolean;
   archivedAt: Date | null;
   sortOrder: number;
-  images: Array<{ id: string; storagePath: string; alt: string | null; sortOrder: number }> | null;
+  media: Array<{ id: string; storagePath: string; alt: string | null; mediaType: "image" | "video"; mimeType: string; sortOrder: number }> | null;
 };
 
 const artistSelect = `
@@ -62,6 +63,17 @@ const artistSelect = `
     artist.is_published as "isPublished",
     artist.archived_at as "archivedAt",
     artist.sort_order as "sortOrder",
+    coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object('id', artist_media.id, 'storagePath', artist_media.storage_path, 'alt', artist_media.alt_text, 'mediaType', artist_media.media_type, 'mimeType', artist_media.mime_type, 'sortOrder', artist_media.sort_order)
+          order by artist_media.sort_order asc
+        )
+        from artist_media
+        where artist_media.artist_id = artist.id
+      ),
+      '[]'::jsonb
+    ) as media,
     coalesce(
       jsonb_agg(
         jsonb_build_object('id', link.id, 'label', link.label, 'href', link.url, 'sortOrder', link.sort_order)
@@ -97,14 +109,14 @@ const itemSelect = `
     item.sort_order as "sortOrder",
     coalesce(
       jsonb_agg(
-        jsonb_build_object('id', image.id, 'storagePath', image.storage_path, 'alt', image.alt_text, 'sortOrder', image.sort_order)
-        order by image.sort_order asc
-      ) filter (where image.id is not null),
+        jsonb_build_object('id', media.id, 'storagePath', media.storage_path, 'alt', media.alt_text, 'mediaType', media.media_type, 'mimeType', media.mime_type, 'sortOrder', media.sort_order)
+        order by media.sort_order asc
+      ) filter (where media.id is not null),
       '[]'::jsonb
-    ) as images
+    ) as media
   from items item
   join artists artist on artist.id = item.artist_id
-  left join item_images image on image.item_id = item.id
+  left join item_media media on media.item_id = item.id
 `;
 
 function mapArtist(row: ArtistRow): Artist {
@@ -128,6 +140,15 @@ function mapArtist(row: ArtistRow): Artist {
     imagePath: row.imagePath ?? undefined,
     image: row.imagePath ? getStoragePublicUrl(row.imagePath) : undefined,
     imageAlt: row.imageAlt ?? undefined,
+    media: (row.media ?? []).map((media) => ({
+      id: media.id,
+      src: getStoragePublicUrl(media.storagePath),
+      storagePath: media.storagePath,
+      alt: media.alt ?? row.name,
+      mediaType: media.mediaType,
+      mimeType: media.mimeType,
+      sortOrder: media.sortOrder
+    })),
     links,
     initiallyExpanded: row.initiallyExpanded,
     isPublished: row.isPublished,
@@ -154,12 +175,14 @@ function mapItem(row: ItemRow): Product {
     priceCents: row.priceCents,
     currency: row.currency,
     stockCount: row.stockCount,
-    images: (row.images ?? []).map((image) => ({
-      id: image.id,
-      src: getStoragePublicUrl(image.storagePath),
-      storagePath: image.storagePath,
-      alt: image.alt ?? row.name,
-      sortOrder: image.sortOrder
+    media: (row.media ?? []).map((media) => ({
+      id: media.id,
+      src: getStoragePublicUrl(media.storagePath),
+      storagePath: media.storagePath,
+      alt: media.alt ?? row.name,
+      mediaType: media.mediaType,
+      mimeType: media.mimeType,
+      sortOrder: media.sortOrder
     })),
     orderMessage: row.orderMessage ?? `Hello ITEMS, I want to order ${row.name} by ${row.artistName}.`,
     isPublished: row.isPublished,
