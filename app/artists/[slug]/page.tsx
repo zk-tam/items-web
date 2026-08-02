@@ -2,23 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArtistDetail } from "@/components/artist/ArtistDetail";
 import { SiteShell } from "@/components/layout/SiteShell";
-import { artists as seedArtists } from "@/data/artists";
 import type { ArtistMenuItem } from "@/data/navigation";
 import { getArtistBySlug, listArtists, listProductsByArtistSlug } from "@/lib/db/items-repository";
+import { artistMetadata } from "@/lib/seo/catalog-metadata";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type ArtistPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
-
-export function generateStaticParams() {
-  return seedArtists.map((artist) => ({
-    slug: artist.slug
-  }));
-}
 
 export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -30,10 +25,7 @@ export async function generateMetadata({ params }: ArtistPageProps): Promise<Met
     };
   }
 
-  return {
-    title: artist.name,
-    description: artist.bio ?? artist.role
-  };
+  return artistMetadata(artist);
 }
 
 export default async function ArtistPage({ params }: ArtistPageProps) {

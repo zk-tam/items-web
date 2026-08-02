@@ -2,22 +2,17 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/layout/SiteShell";
 import { ProductDetail } from "@/components/product/ProductDetail";
-import { products } from "@/data/products";
 import { getArtistBySlug, getProductBySlug } from "@/lib/db/items-repository";
+import { itemMetadata } from "@/lib/seo/catalog-metadata";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type ProductPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
-
-export function generateStaticParams() {
-  return products.map((product) => ({
-    slug: product.slug
-  }));
-}
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -29,10 +24,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     };
   }
 
-  return {
-    title: product.name,
-    description: product.description
-  };
+  return itemMetadata(product);
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {

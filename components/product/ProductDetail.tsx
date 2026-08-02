@@ -1,5 +1,4 @@
-import type { Artist } from "@/data/artists";
-import type { Product } from "@/data/products";
+import type { CatalogArtist as Artist, CatalogItem as Product } from "@/lib/catalog/types";
 import { ArtistBio } from "@/components/artist/ArtistBio";
 import { ProductImageStage } from "@/components/product/ProductImageStage";
 import { WhatsappOrderButton } from "@/components/ui/WhatsappOrderButton";

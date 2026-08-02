@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 type GlobalWithPg = typeof globalThis & {
   itemsPgPool?: Pool;
@@ -12,7 +12,7 @@ export function getPostgresPool() {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {
-    return null;
+    throw new Error("DATABASE_URL must be configured.");
   }
 
   const globalWithPg = globalThis as GlobalWithPg;
@@ -33,11 +33,29 @@ export function getPostgresPool() {
 
 export async function queryRows<T extends QueryResultRow>(text: string, values: unknown[] = []) {
   const pool = getPostgresPool();
-
-  if (!pool) {
-    return null;
-  }
-
   const result = await pool.query<T>(text, values);
   return result.rows;
+}
+
+export async function queryRow<T extends QueryResultRow>(text: string, values: unknown[] = []) {
+  const rows = await queryRows<T>(text, values);
+  return rows[0] ?? null;
+}
+
+export async function withTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+  const pool = getPostgresPool();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("begin");
+    const result = await callback(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }

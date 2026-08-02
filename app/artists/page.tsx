@@ -5,6 +5,7 @@ import type { ArtistMenuItem } from "@/data/navigation";
 import { listArtists } from "@/lib/db/items-repository";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Artists"

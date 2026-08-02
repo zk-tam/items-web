@@ -4,7 +4,7 @@ import type { MouseEvent } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { artistMenuItems as fallbackArtistMenuItems, primaryNavigation, type ArtistMenuItem, type PrimaryRoute } from "@/data/navigation";
+import { primaryNavigation, type ArtistMenuItem, type PrimaryRoute } from "@/data/navigation";
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { ItemsLogo } from "@/components/layout/ItemsLogo";
 import { AnimatedPlusMinus } from "@/components/ui/AnimatedPlusMinus";
@@ -22,7 +22,7 @@ function shouldUseNativeNavigation(event: MouseEvent<HTMLAnchorElement>) {
   return event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
 }
 
-export function DesktopSidebar({ activeRoute, artistMenuItems = fallbackArtistMenuItems, artistMenuExpanded = false }: DesktopSidebarProps) {
+export function DesktopSidebar({ activeRoute, artistMenuItems = [], artistMenuExpanded = false }: DesktopSidebarProps) {
   const router = useRouter();
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
   const displayRoute = pendingRoute ?? activeRoute;

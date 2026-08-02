@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { ProductImage } from "@/data/products";
+import type { CatalogImage as ProductImage } from "@/lib/catalog/types";
 import { cn } from "@/lib/utils";
 
 type ProductImageStageProps = {

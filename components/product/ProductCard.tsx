@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/data/products";
+import type { CatalogItem as Product } from "@/lib/catalog/types";
 import { PlusMinusIconButton } from "@/components/ui/PlusMinusIconButton";
 
 type ProductCardProps = {

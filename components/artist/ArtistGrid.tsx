@@ -1,6 +1,6 @@
 "use client";
 
-import type { Artist } from "@/data/artists";
+import type { CatalogArtist as Artist } from "@/lib/catalog/types";
 import { ArtistCard } from "@/components/artist/ArtistCard";
 
 type ArtistGridProps = {

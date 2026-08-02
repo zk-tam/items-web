@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Artist } from "@/data/artists";
+import type { CatalogArtist as Artist } from "@/lib/catalog/types";
 
 type ArtistBioProps = {
   artist?: Artist;

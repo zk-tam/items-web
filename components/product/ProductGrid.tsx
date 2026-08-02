@@ -1,4 +1,4 @@
-import type { Product } from "@/data/products";
+import type { CatalogItem as Product } from "@/lib/catalog/types";
 import { ProductCard } from "@/components/product/ProductCard";
 
 type ProductGridProps = {
