@@ -44,10 +44,13 @@ export type CatalogItem = {
   artistSlug: string;
   artistId?: string;
   description: string;
+  shortDescription?: string;
   preview?: string[];
   specs: string[];
   size: string;
   category?: string;
+  myrPriceCents?: number;
+  usdPriceCents?: number;
   priceCents?: number;
   currency?: string;
   stockCount?: number;

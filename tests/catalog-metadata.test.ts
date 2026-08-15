@@ -35,4 +35,25 @@ describe("catalog metadata", () => {
     expect(metadata.description).toBe("Item description.");
     expect(metadata.alternates).toEqual({ canonical: "/products/item-name" });
   });
+
+  it("appends an item's price to the SEO and social-preview description", () => {
+    const metadata = itemMetadata({
+      slug: "item-name",
+      name: "Item Name",
+      artistName: "Artist Name",
+      artistSlug: "artist-name",
+      description: "Item description.",
+      seoDescription: "Custom item description.",
+      myrPriceCents: 120000,
+      usdPriceCents: 25000,
+      specs: [],
+      size: "One size",
+      media: [],
+      orderMessage: "Hello"
+    });
+
+    expect(metadata.description).toBe("Custom item description.\nPrice: MYR 1200.00 / USD 250.00.");
+    expect(metadata.openGraph?.description).toBe("Custom item description.\nPrice: MYR 1200.00 / USD 250.00.");
+    expect(metadata.twitter?.description).toBe("Custom item description.\nPrice: MYR 1200.00 / USD 250.00.");
+  });
 });

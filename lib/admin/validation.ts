@@ -72,9 +72,14 @@ export function parseNonNegativeInteger(value: FormDataEntryValue | null, label:
 }
 
 export function parsePriceCents(value: FormDataEntryValue | null) {
-  const text = optionalText(value) ?? "0";
+  return parseOptionalPriceCents(value) ?? 0;
+}
+
+export function parseOptionalPriceCents(value: FormDataEntryValue | null, label = "Price") {
+  const text = optionalText(value);
+  if (!text) return null;
   if (!/^\d+(?:\.\d{1,2})?$/.test(text)) {
-    throw new Error("Price must be a valid MYR amount with at most two decimal places.");
+    throw new Error(`${label} must be a valid amount with at most two decimal places.`);
   }
   const [whole, fraction = ""] = text.split(".");
   return Number(whole) * 100 + Number(fraction.padEnd(2, "0"));

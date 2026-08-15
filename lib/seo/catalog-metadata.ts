@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { CatalogArtist, CatalogItem } from "@/lib/catalog/types";
+import { itemPriceLabels } from "../catalog/pricing";
 
 function valueOrFallback(value: string | undefined, fallback: string) {
   return value?.trim() || fallback;
@@ -31,7 +32,9 @@ export function artistMetadata(artist: CatalogArtist): Metadata {
 
 export function itemMetadata(item: CatalogItem): Metadata {
   const title = valueOrFallback(item.seoTitle, item.name);
-  const description = valueOrFallback(item.seoDescription, item.description);
+  const baseDescription = valueOrFallback(item.seoDescription, item.description);
+  const prices = itemPriceLabels(item);
+  const description = prices.length > 0 ? `${baseDescription}\nPrice: ${prices.join(" / ")}.` : baseDescription;
   const image = item.media.find((media) => media.mediaType === "image");
 
   return {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { CatalogItem as Product } from "@/lib/catalog/types";
+import { itemPriceLabels } from "@/lib/catalog/pricing";
 import { PlusMinusIconButton } from "@/components/ui/PlusMinusIconButton";
 
 type ProductCardProps = {
@@ -14,7 +15,11 @@ type ProductCardProps = {
 export function ProductCard({ product, priority = false }: ProductCardProps) {
   const [expanded, setExpanded] = useState(false);
   const media = product.media[0];
-  const details = product.preview ?? [product.description, `Size: ${product.size}`];
+  const prices = itemPriceLabels(product);
+  const shortDescription = product.shortDescription ?? (product.preview?.length ? undefined : product.description);
+  const categoryAndSize = product.category && product.size
+    ? `${product.category}: ${product.size}`
+    : product.category ?? (product.size ? `Size: ${product.size}` : undefined);
 
   return (
     <article className="h-full">
@@ -36,11 +41,12 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </Link>
 
         <div className="grid min-h-[52px] grid-cols-[minmax(0,1fr)_auto] items-start gap-4 pt-4 text-[16px] font-black leading-tight lg:min-h-[44px] lg:text-[12px]">
-          <Link href={`/products/${product.slug}`} className="min-w-0 hover:text-items-blueHover">
-            <span>
+          <div className="min-w-0">
+            <Link href={`/products/${product.slug}`} className="block hover:text-items-blueHover">
               {product.name} | {product.artistName}
-            </span>
-          </Link>
+            </Link>
+            {prices.length > 0 && <p className="mt-1 text-[13px] font-medium lg:text-[10px]">{prices.join(" / ")}</p>}
+          </div>
           <PlusMinusIconButton
             label={`${expanded ? "Collapse" : "Expand"} ${product.name} details`}
             onClick={() => setExpanded((current) => !current)}
@@ -50,11 +56,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         {expanded && (
           <div className="mt-3 border-y border-items-blue py-3 text-[15px] font-bold leading-snug lg:text-[10px]">
-            {details.map((line) => (
-              <p key={line} className="mb-4 last:mb-0">
-                {line}
-              </p>
-            ))}
+            {shortDescription && <p>{shortDescription}</p>}
+            {product.preview?.map((line) => <p key={line} className="mt-4">{line}</p>)}
+            {categoryAndSize && <p className="mt-12">{categoryAndSize}</p>}
           </div>
         )}
       </div>

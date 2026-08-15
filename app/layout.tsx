@@ -11,6 +11,11 @@ const avenir = localFont({
       style: "normal"
     },
     {
+      path: "../fonts/Avenir Book/Avenir Book.ttf",
+      weight: "500",
+      style: "normal"
+    },
+    {
       path: "../fonts/Avenir Heavy/Avenir Heavy.ttf",
       weight: "700",
       style: "normal"

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SiteShell } from "@/components/layout/SiteShell";
 
 export const metadata: Metadata = {
@@ -12,29 +11,30 @@ export default function AboutPage() {
       <main className="max-w-[900px] pt-3 lg:pt-0">
         <section className="space-y-11 lg:space-y-14">
           <div className="space-y-5">
-            <h1 className="text-[22px] font-black leading-tight lg:text-[24px]">What&apos;s ITEMS?</h1>
-            <p className="max-w-[820px] text-[20px] font-bold leading-snug lg:text-[28px]">
-              It&apos;s simply compelling &quot;ideas&quot; in physical forms that could come in any shape and size.
-            </p>
+            <h1 className="text-[13px] font-heavy">What’s ITEMS?</h1>
+            <p className="max-w-[980px] text-[13px] font-medium">It’s simply compelling “ideas” in physical forms that could come in any shape and size.</p>
           </div>
 
           <div className="space-y-5">
-            <h2 className="text-[22px] font-black leading-tight lg:text-[24px]">Who&apos;s behind it?</h2>
-            <p className="max-w-[850px] text-[20px] font-bold leading-snug lg:text-[28px]">
-              We&apos;re a growing collective of{" "}
-              <Link className="underline underline-offset-4" href="/artists">
-                creators
-              </Link>{" "}
-              trying to bring physical ITEMS to life.
-            </p>
+            <h2 className="text-[13px] font-heavy">Who’s behind it?</h2>
+            <p className="max-w-[980px] text-[13px] font-medium">We’re a growing collective of creators trying to bring physical ITEMS to life.</p>
           </div>
 
           <div className="space-y-5">
-            <h2 className="text-[22px] font-black leading-tight lg:text-[24px]">Get in touch!</h2>
-            <p className="text-[20px] font-bold leading-snug lg:text-[28px]">
-              <a className="underline underline-offset-4" href="mailto:info@itemsyouwant.com">info@itemsyouwant.com</a>,{" "}
-              <a className="underline underline-offset-4" href="https://instagram.com/itemsyouwant" target="_blank" rel="noreferrer">@itemsyouwant</a>,{" "}
-              <a className="underline underline-offset-4" href="https://instagram.com/zz.liu" target="_blank" rel="noreferrer">@zz.liu</a>
+            <h2 className="text-[13px] font-heavy">Essence of ITEMS</h2>
+            <div className="max-w-[980px] space-y-5 text-[13px] font-medium">
+              <p>ITEMS is a platform created as an avenue for creators to bring forth fresh ideas in the form of physical items.</p>
+              <p>ITEMS is not a consignment platform created for the sake of commerce, but rather a space to create without restriction and see where compelling ideas can lead.</p>
+              <p>In today&apos;s rinse-and-repeat culture, too many creations are built around a templated formula for scale and commerce.</p>
+              <p>At ITEMS, we remove the template and the limitations. We&apos;re simply trying to bring new ideas to life. Some ideas may work, some won&apos;t, but let&apos;s have a bit of fun while we&apos;re at it.</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <h2 className="text-[13px] font-heavy">Get in touch!</h2>
+            <p className="max-w-[980px] text-[13px] font-medium">
+              <a className="hover:underline" href="mailto:itemsart@gmail.com">itemsart@gmail.com</a> or{" "}
+              <a className="hover:underline" href="http://wa.me/60176226280" target="_blank" rel="noreferrer">WhatsApp us.</a>
             </p>
           </div>
         </section>

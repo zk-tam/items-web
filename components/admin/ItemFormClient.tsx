@@ -17,14 +17,15 @@ type ItemValues = {
   slug: string;
   name: string;
   description: string;
+  shortDescription: string | null;
   preview: string[] | null;
   specs: string[];
   size: string | null;
   category: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
-  priceCents: number;
-  currency: string;
+  myrPriceCents: number | null;
+  usdPriceCents: number | null;
   stockCount: number;
   orderMessage: string | null;
   isPublished: boolean;
@@ -48,8 +49,8 @@ type ItemFormClientProps = {
   action: (formData: FormData) => void | Promise<void>;
 };
 
-function asMoney(cents: number | undefined) {
-  return ((cents ?? 0) / 100).toFixed(2);
+function asMoney(cents: number | null | undefined) {
+  return cents === null || cents === undefined ? "" : (cents / 100).toFixed(2);
 }
 
 function isRedirectError(error: unknown) {
@@ -90,6 +91,7 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
       <label className="grid gap-1 font-bold">Name<input name="name" required defaultValue={item?.name} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={item?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">itemsyouwant.com/products/{item?.slug ?? "your-slug"}</span></label>
       <label className="grid gap-1 font-bold">Description<textarea name="description" required rows={5} defaultValue={item?.description} className="border border-items-blue bg-transparent p-3" /></label>
+      <label className="grid gap-1 font-bold">Short description <span className="text-xs font-normal">Shown when the item card is expanded</span><textarea name="shortDescription" rows={3} defaultValue={item?.shortDescription ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       <SeoFields
         seoTitle={item?.seoTitle}
         seoDescription={item?.seoDescription}
@@ -103,11 +105,11 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
       </div>
       <div className="grid gap-5 md:grid-cols-3">
         <label className="grid gap-1 font-bold">Size<input name="size" defaultValue={item?.size ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
-        <label className="grid gap-1 font-bold">Price (MYR)<input name="price" inputMode="decimal" defaultValue={asMoney(item?.priceCents)} className="border border-items-blue bg-transparent p-3" /></label>
+        <label className="grid gap-1 font-bold">Price (MYR)<input name="myrPrice" inputMode="decimal" defaultValue={asMoney(item?.myrPriceCents)} className="border border-items-blue bg-transparent p-3" /></label>
+        <label className="grid gap-1 font-bold">Price (USD)<input name="usdPrice" inputMode="decimal" defaultValue={asMoney(item?.usdPriceCents)} className="border border-items-blue bg-transparent p-3" /></label>
         <label className="grid gap-1 font-bold">Stock count<input name="stockCount" type="number" min="0" defaultValue={item?.stockCount ?? 0} className="border border-items-blue bg-transparent p-3" /></label>
       </div>
       <div className="grid gap-5 md:grid-cols-2">
-        <label className="grid gap-1 font-bold">Currency<input name="currency" maxLength={3} defaultValue={item?.currency ?? "MYR"} className="border border-items-blue bg-transparent p-3" /></label>
         <label className="grid gap-1 font-bold">Sort order<input name="sortOrder" type="number" min="0" defaultValue={item?.sortOrder ?? 0} className="border border-items-blue bg-transparent p-3" /></label>
       </div>
       <label className="grid gap-1 font-bold">WhatsApp message<input name="orderMessage" defaultValue={item?.orderMessage ?? ""} className="border border-items-blue bg-transparent p-3" /></label>

@@ -38,12 +38,12 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
 
         <div className="space-y-9 lg:pt-10">
           <section className="space-y-6">
-            <h1 className="text-[44px] font-black leading-none lg:text-[48px]">{artist.name}</h1>
-            <p className="max-w-[640px] text-[18px] font-black leading-tight lg:text-[22px]">{artist.role}</p>
-            {artist.bio && <p className="max-w-[640px] text-[16px] font-bold leading-snug lg:text-[20px]">{artist.bio}</p>}
+            <h1 className="text-[13px] font-heavy">{artist.name}</h1>
+            <p className="max-w-[640px] text-[13px] font-heavy">{artist.role}</p>
+            {artist.bio && <p className="max-w-[640px] text-[13px] font-medium">{artist.bio}</p>}
           </section>
 
-          <div className="flex flex-wrap gap-x-8 gap-y-3 text-[18px] font-black leading-none lg:text-[20px]">
+          <div className="flex flex-wrap gap-x-8 gap-y-3 text-[13px] font-heavy">
             {instagramUrl && (
               <a href={instagramUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-items-blueHover" aria-label={`${artist.name} on Instagram`}>
                 <Instagram aria-hidden className="h-5 w-5" strokeWidth={1.9} />
@@ -67,7 +67,7 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
 
       {artist.media.length > 0 && (
         <section className="space-y-6 border-t border-items-blue pt-9">
-          <h2 className="text-[22px] font-black leading-tight lg:text-[24px]">More from {artist.name}</h2>
+          <h2 className="text-[13px] font-heavy">More from {artist.name}</h2>
           <div className="mx-auto max-w-[620px]">
             <CatalogMediaGallery media={artist.media} label={`${artist.name} gallery`} />
           </div>
@@ -76,7 +76,7 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
 
       {products.length > 0 && (
         <section className="space-y-8 border-t border-items-blue pt-9">
-          <h2 className="text-[22px] font-black leading-tight lg:text-[24px]">Items by {artist.name}</h2>
+          <h2 className="text-[13px] font-heavy">Items by {artist.name}</h2>
           <ProductGrid products={products} />
         </section>
       )}

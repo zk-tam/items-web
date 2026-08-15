@@ -30,12 +30,15 @@ type ItemRow = {
   artistName: string;
   artistSlug: string;
   description: string;
+  shortDescription: string | null;
   preview: string[] | null;
   specs: string[];
   size: string | null;
   category: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  myrPriceCents: number | null;
+  usdPriceCents: number | null;
   priceCents: number;
   currency: string;
   stockCount: number;
@@ -94,12 +97,15 @@ const itemSelect = `
     artist.name as "artistName",
     artist.slug as "artistSlug",
     item.description,
+    item.short_description as "shortDescription",
     item.preview,
     item.specs,
     item.size,
     item.category,
     item.seo_title as "seoTitle",
     item.seo_description as "seoDescription",
+    item.myr_price_cents as "myrPriceCents",
+    item.usd_price_cents as "usdPriceCents",
     item.price_cents as "priceCents",
     item.currency,
     item.stock_count as "stockCount",
@@ -166,12 +172,15 @@ function mapItem(row: ItemRow): Product {
     artistName: row.artistName,
     artistSlug: row.artistSlug,
     description: row.description,
+    shortDescription: row.shortDescription ?? undefined,
     preview: row.preview ?? undefined,
     specs: row.specs ?? [],
     size: row.size ?? "",
     category: row.category ?? undefined,
     seoTitle: row.seoTitle ?? undefined,
     seoDescription: row.seoDescription ?? undefined,
+    myrPriceCents: row.myrPriceCents ?? (row.currency === "MYR" ? row.priceCents : undefined),
+    usdPriceCents: row.usdPriceCents ?? (row.currency === "USD" ? row.priceCents : undefined),
     priceCents: row.priceCents,
     currency: row.currency,
     stockCount: row.stockCount,

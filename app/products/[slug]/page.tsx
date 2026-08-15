@@ -38,7 +38,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const artist = await getArtistBySlug(product.artistSlug);
 
   return (
-    <SiteShell activeRoute="shop">
+    <SiteShell activeRoute="shop" detailHeader lockDesktopViewport>
       <ProductDetail product={product} artist={artist ?? undefined} />
     </SiteShell>
   );

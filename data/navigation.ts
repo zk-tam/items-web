@@ -11,6 +11,11 @@ export type ArtistMenuItem = {
   href: string;
 };
 
+export type ProductMenuItem = {
+  name: string;
+  href: string;
+};
+
 export const primaryNavigation: NavigationItem[] = [
   {
     label: "Shop All",

@@ -11,7 +11,6 @@
   --items-dim: #e8e8e8;
   --items-placeholder: #c9c9c9;
   --items-line-soft: rgba(0, 87, 255, 0.28);
-  --items-max-width: 1280px;
   --items-sidebar-width: 280px;
   --items-desktop-padding: 32px;
   --items-mobile-padding: 28px;
@@ -79,9 +78,8 @@ select {
 
 @layer components {
   .items-frame {
-    width: min(calc(100vw - 32px), var(--items-max-width));
+    width: calc(100vw - 32px);
     margin: 24px auto;
-    border: 1px solid var(--items-blue);
     background: var(--items-surface);
   }
 
@@ -89,8 +87,6 @@ select {
     width: min(100%, 430px);
     min-height: 100vh;
     margin: 0 auto;
-    border-left: 1px solid var(--items-blue);
-    border-right: 1px solid var(--items-blue);
     background: var(--items-surface);
     overflow-x: hidden;
   }

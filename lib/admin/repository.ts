@@ -33,14 +33,15 @@ export type AdminItem = {
   slug: string;
   name: string;
   description: string;
+  shortDescription: string | null;
   preview: string[] | null;
   specs: string[];
   size: string | null;
   category: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
-  priceCents: number;
-  currency: string;
+  myrPriceCents: number | null;
+  usdPriceCents: number | null;
   stockCount: number;
   orderMessage: string | null;
   isPublished: boolean;
@@ -170,8 +171,8 @@ export async function archiveArtist(id: string) {
 
 export async function listAdminItems() {
   return (await queryRows<AdminItem>(
-    `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.preview, item.specs,
-            item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.price_cents as "priceCents", item.currency, item.stock_count as "stockCount", item.order_message as "orderMessage",
+    `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
+            item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
             item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id
      order by item.archived_at nulls first, item.sort_order asc, item.name asc`
@@ -180,17 +181,17 @@ export async function listAdminItems() {
 
 export async function listItemOptions() {
   return (await queryRows<{ id: string; name: string; artistName: string; priceCents: number; stockCount: number }>(
-    `select item.id, item.name, artist.name as "artistName", item.price_cents as "priceCents", item.stock_count as "stockCount"
+    `select item.id, item.name, artist.name as "artistName", item.myr_price_cents as "priceCents", item.stock_count as "stockCount"
      from items item join artists artist on artist.id = item.artist_id
-     where item.archived_at is null
+     where item.archived_at is null and item.myr_price_cents is not null
      order by item.name asc`
   )) ?? [];
 }
 
 export async function getAdminItem(id: string) {
   const item = await queryRow<AdminItem>(
-    `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.preview, item.specs,
-            item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.price_cents as "priceCents", item.currency, item.stock_count as "stockCount", item.order_message as "orderMessage",
+    `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
+            item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
             item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id where item.id = $1`,
     [id]
@@ -204,17 +205,19 @@ export async function getAdminItem(id: string) {
 }
 
 export async function saveItem(input: ItemInput, id?: string) {
+  const legacyPriceCents = input.myrPriceCents ?? input.usdPriceCents ?? 0;
+  const legacyCurrency = input.myrPriceCents === null ? "USD" : "MYR";
   const query = id
     ? {
-        text: `update items set artist_id = $2, slug = $3, name = $4, description = $5, preview = $6, specs = $7, size = $8, category = $9,
-              price_cents = $10, currency = $11, stock_count = $12, order_message = $13, is_published = $14, sort_order = $15, seo_title = $16, seo_description = $17
+        text: `update items set artist_id = $2, slug = $3, name = $4, description = $5, short_description = $6, preview = $7, specs = $8, size = $9, category = $10,
+              myr_price_cents = $11, usd_price_cents = $12, price_cents = $13, currency = $14, stock_count = $15, order_message = $16, is_published = $17, sort_order = $18, seo_title = $19, seo_description = $20
               where id = $1 returning id`,
-        values: [id, input.artistId, input.slug, input.name, input.description, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.priceCents, input.currency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+        values: [id, input.artistId, input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
       }
     : {
-        text: `insert into items (artist_id, slug, name, description, preview, specs, size, category, price_cents, currency, stock_count, order_message, is_published, sort_order, seo_title, seo_description)
-              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) returning id`,
-        values: [input.artistId, input.slug, input.name, input.description, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.priceCents, input.currency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+        text: `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, sort_order, seo_title, seo_description)
+              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id`,
+        values: [input.artistId, input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
       };
   const result = await queryRow<{ id: string }>(query.text, query.values);
   if (!result) throw new Error("Item could not be saved.");
@@ -360,9 +363,9 @@ export async function createOrder(input: { customerName: string; customerEmail: 
     for (const line of input.lines) quantities.set(line.itemId, (quantities.get(line.itemId) ?? 0) + line.quantity);
     const itemIds = [...quantities.keys()];
     const items = await client.query<{ id: string; name: string; artistName: string; priceCents: number }>(
-      `select item.id, item.name, artist.name as "artistName", item.price_cents as "priceCents"
+      `select item.id, item.name, artist.name as "artistName", item.myr_price_cents as "priceCents"
        from items item join artists artist on artist.id = item.artist_id
-       where item.id = any($1::uuid[]) and item.archived_at is null
+       where item.id = any($1::uuid[]) and item.archived_at is null and item.myr_price_cents is not null
        for update of item`,
       [itemIds]
     );

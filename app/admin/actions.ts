@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
 import { archiveArtist, archiveItem, createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
-import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalUrl, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
+import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 
 function asOptionalFile(value: FormDataEntryValue | null) {
@@ -36,21 +36,25 @@ function parseArtistInput(formData: FormData, profileImagePath: string | null) {
 }
 
 function parseItemInput(formData: FormData) {
-  const currency = (optionalText(formData.get("currency")) ?? "MYR").toUpperCase();
-  if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Currency must be a three-letter code.");
+  const myrPriceCents = parseOptionalPriceCents(formData.get("myrPrice"), "MYR price");
+  const usdPriceCents = parseOptionalPriceCents(formData.get("usdPrice"), "USD price");
+  if (myrPriceCents === null && usdPriceCents === null) {
+    throw new Error("Add a MYR price, a USD price, or both.");
+  }
   return {
     artistId: requiredText(formData.get("artistId"), "Artist"),
     slug: parseSlug(formData.get("slug")),
     name: requiredText(formData.get("name"), "Name"),
     description: requiredText(formData.get("description"), "Description"),
+    shortDescription: optionalText(formData.get("shortDescription")),
     preview: parseLines(formData.get("preview")),
     specs: parseLines(formData.get("specs")),
     size: optionalText(formData.get("size")),
     category: optionalText(formData.get("category")),
     seoTitle: parseSeoTitle(formData.get("seoTitle")),
     seoDescription: parseSeoDescription(formData.get("seoDescription")),
-    priceCents: parsePriceCents(formData.get("price")),
-    currency,
+    myrPriceCents,
+    usdPriceCents,
     stockCount: parseNonNegativeInteger(formData.get("stockCount"), "Stock count"),
     orderMessage: optionalText(formData.get("orderMessage")),
     isPublished: isChecked(formData.get("isPublished")),
