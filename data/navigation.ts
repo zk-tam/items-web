@@ -16,6 +16,8 @@ export type ProductMenuItem = {
   href: string;
 };
 
+export const itemsInstagramUrl = "https://www.instagram.com/items.art/";
+
 export const primaryNavigation: NavigationItem[] = [
   {
     label: "Shop All",
@@ -42,7 +44,7 @@ export const primaryNavigation: NavigationItem[] = [
 export const footerLinks = [
   {
     label: "Instagram +",
-    href: "https://instagram.com/itemsyouwant",
+    href: itemsInstagramUrl,
     external: true
   },
   {
