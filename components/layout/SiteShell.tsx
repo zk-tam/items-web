@@ -41,7 +41,7 @@ export function SiteShell({
               <div className={cn("p-9", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
             </section>
           ) : (
-            <div className={cn("grid grid-cols-[var(--items-sidebar-width)_minmax(0,1fr)]", lockDesktopViewport ? "h-full min-h-0" : "min-h-[760px]")}>
+            <div className={cn("grid grid-cols-[var(--items-sidebar-width)_minmax(0,1fr)]", lockDesktopViewport ? "h-full min-h-0" : "min-h-[calc(100vh-48px)]")}>
               <DesktopSidebar
                 activeRoute={activeRoute}
                 artistMenuExpanded={artistMenuExpanded}

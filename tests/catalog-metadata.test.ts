@@ -36,7 +36,7 @@ describe("catalog metadata", () => {
     expect(metadata.alternates).toEqual({ canonical: "/products/item-name" });
   });
 
-  it("appends an item's price to the SEO and social-preview description", () => {
+  it("keeps an item's price out of the SEO and social-preview description", () => {
     const metadata = itemMetadata({
       slug: "item-name",
       name: "Item Name",
@@ -52,8 +52,8 @@ describe("catalog metadata", () => {
       orderMessage: "Hello"
     });
 
-    expect(metadata.description).toBe("Custom item description.\nPrice: MYR 1200.00 / USD 250.00.");
-    expect(metadata.openGraph?.description).toBe("Custom item description.\nPrice: MYR 1200.00 / USD 250.00.");
-    expect(metadata.twitter?.description).toBe("Custom item description.\nPrice: MYR 1200.00 / USD 250.00.");
+    expect(metadata.description).toBe("Custom item description.");
+    expect(metadata.openGraph?.description).toBe("Custom item description.");
+    expect(metadata.twitter?.description).toBe("Custom item description.");
   });
 });
