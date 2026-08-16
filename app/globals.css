@@ -15,6 +15,8 @@
   --items-desktop-padding: 32px;
   --items-mobile-padding: 28px;
   --items-grid-gap: 24px;
+  --items-header-logo-size: 100px;
+  --items-detail-logo-height: 70px;
 
   --background: 0 0% 100%;
   --foreground: 220 100% 50%;

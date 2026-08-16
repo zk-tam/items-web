@@ -87,7 +87,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
       data-state={isLightMode ? "on" : "off"}
       data-theme-toggle="true"
       label={isLightMode ? "ON: light mode. Switch to dark theme" : "OFF: dark mode. Switch to light theme"}
-      className={cn("group active:scale-[0.98]", compact ? "h-6 w-12 sm:h-7 sm:w-14" : "h-8 w-16")}
+      className={cn("group active:scale-[0.98]", compact ? "h-6 w-12 sm:h-7 sm:w-14" : "h-7 w-14")}
       onClick={toggleTheme}
       suppressHydrationWarning
     >

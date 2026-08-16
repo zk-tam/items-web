@@ -33,28 +33,28 @@ export function MobileHeader({ activeRoute }: MobileHeaderProps) {
   return (
     <header className="overflow-hidden lg:hidden">
       <div className="px-7 py-4">
-        <div className="relative min-h-[150px]">
-          <ItemsLogo className="absolute left-0 top-8 max-w-[150px] sm:max-w-[160px]" />
-          <div className="absolute right-0 top-0">
+        <div className="grid min-h-[198px] grid-cols-[minmax(0,1fr)_auto] gap-x-3 sm:min-h-[218px] sm:gap-x-4">
+          <ItemsLogo className="self-center" imageClassName="h-auto w-4/5" />
+          <div className="flex flex-col items-end">
             <UtilityIcons compact />
+            <nav
+              aria-label="Primary navigation"
+              className="mt-[58px] w-[156px] space-y-4 text-right text-[13px] font-black leading-none sm:mt-[62px] sm:w-[168px] sm:space-y-5 sm:text-[14px]"
+            >
+              {primaryNavigation.map((item) => (
+                <Link
+                  key={item.href}
+                  className="flex items-start justify-end gap-2 hover:text-items-blueHover"
+                  href={item.href}
+                  onClick={() => handleNavClick(item)}
+                  prefetch
+                >
+                  <span className="max-w-[138px] sm:max-w-[150px]">{item.label}</span>
+                  <AnimatedPlusMinus className="mt-px min-w-3" open={displayRoute === item.route} />
+                </Link>
+              ))}
+            </nav>
           </div>
-          <nav
-            aria-label="Primary navigation"
-            className="absolute right-0 top-[82px] w-[156px] space-y-4 text-right text-[13px] font-black leading-none sm:top-[86px] sm:w-[168px] sm:space-y-5 sm:text-[14px]"
-          >
-            {primaryNavigation.map((item) => (
-              <Link
-                key={item.href}
-                className="flex items-start justify-end gap-2 hover:text-items-blueHover"
-                href={item.href}
-                onClick={() => handleNavClick(item)}
-                prefetch
-              >
-                <span className="max-w-[138px] sm:max-w-[150px]">{item.label}</span>
-                <AnimatedPlusMinus className="mt-px min-w-3" open={displayRoute === item.route} />
-              </Link>
-            ))}
-          </nav>
         </div>
       </div>
       <div className="mx-7 h-px bg-items-blue" />

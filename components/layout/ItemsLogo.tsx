@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 
 type ItemsLogoProps = {
   className?: string;
+  imageClassName?: string;
 };
 
-export function ItemsLogo({ className }: ItemsLogoProps) {
+export function ItemsLogo({ className, imageClassName }: ItemsLogoProps) {
   return (
     <Link aria-label="ITEMS home" className={cn("block text-items-blue", className)} href="/">
       <Image
@@ -15,6 +16,7 @@ export function ItemsLogo({ className }: ItemsLogoProps) {
         width={100}
         height={100}
         priority
+        className={cn("h-[var(--items-header-logo-size)] w-[var(--items-header-logo-size)]", imageClassName)}
       />
     </Link>
   );
