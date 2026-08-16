@@ -3,7 +3,7 @@ import { getItemMediaMimeType, isDirectCatalogMediaPath, itemMediaMimeTypes, MAX
 
 type LinkInput = { label: string; url: string };
 
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const slugPattern = /^[@_.]*[a-z0-9][a-z0-9@_.]*(?:-[@_.]*[a-z0-9][a-z0-9@_.]*)*$/;
 
 export function requiredText(value: FormDataEntryValue | null, label: string) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -37,7 +37,7 @@ export function parseSeoDescription(value: FormDataEntryValue | null) {
 export function parseSlug(value: FormDataEntryValue | null) {
   const slug = requiredText(value, "Slug").toLowerCase();
   if (!slugPattern.test(slug)) {
-    throw new Error("Slug may contain lowercase letters, numbers, and single hyphens only.");
+    throw new Error("Slug may contain lowercase letters, numbers, @, periods, underscores, and single hyphens only.");
   }
   return slug;
 }

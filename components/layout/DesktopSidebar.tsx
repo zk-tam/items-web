@@ -60,7 +60,7 @@ export function DesktopSidebar({
             const isActive = displayRoute === item.route;
             const isExpandedProducts = item.route === "shop" && (pendingRoute ? pendingRoute === "shop" : productMenuExpanded);
             const isExpandedArtists = item.route === "artists" && (pendingRoute ? pendingRoute === "artists" : artistMenuExpanded);
-            const menuItems = item.route === "shop" ? productMenuItems : artistMenuItems;
+            const menuItems = item.route === "shop" ? productMenuItems : item.route === "artists" ? artistMenuItems : [];
             const isExpanded = isExpandedProducts || isExpandedArtists;
 
             return (
@@ -75,13 +75,29 @@ export function DesktopSidebar({
                   <AnimatedPlusMinus open={isActive || isExpanded} />
                 </Link>
 
-                {isExpanded && (
-                  <div className="mt-4 space-y-[10px] pl-7 text-[11px] font-bold leading-none">
-                    {menuItems.map((menuItem) => (
-                      <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
-                        {menuItem.name}
-                      </Link>
-                    ))}
+                {(item.route === "shop" || item.route === "artists") && (
+                  <div
+                    className={cn(
+                      "grid overflow-hidden transition-[grid-template-rows,margin] duration-300 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none",
+                      isExpanded ? "mt-4 grid-rows-[1fr]" : "mt-0 grid-rows-[0fr]"
+                    )}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div
+                        aria-hidden={!isExpanded}
+                        className={cn(
+                          "space-y-[10px] pl-7 text-[11px] font-bold leading-none transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+                          isExpanded ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+                        )}
+                        inert={!isExpanded}
+                      >
+                        {menuItems.map((menuItem) => (
+                          <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
+                            {menuItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

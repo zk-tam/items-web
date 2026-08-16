@@ -22,7 +22,7 @@ end $$;
 
 create table if not exists artists (
   id uuid primary key default gen_random_uuid(),
-  slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  slug text not null unique check (slug ~ '^[@_.]*[a-z0-9][a-z0-9@_.]*(-[@_.]*[a-z0-9][a-z0-9@_.]*)*$'),
   name text not null,
   role text,
   description text,
@@ -66,7 +66,7 @@ create table if not exists artist_media (
 create table if not exists items (
   id uuid primary key default gen_random_uuid(),
   artist_id uuid not null references artists(id) on delete restrict,
-  slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  slug text not null unique check (slug ~ '^[@_.]*[a-z0-9][a-z0-9@_.]*(-[@_.]*[a-z0-9][a-z0-9@_.]*)*$'),
   name text not null,
   description text not null,
   short_description text,

@@ -4,6 +4,7 @@ import { ArtistDetail } from "@/components/artist/ArtistDetail";
 import { SiteShell } from "@/components/layout/SiteShell";
 import { getArtistBySlug, listProductsByArtistSlug } from "@/lib/db/items-repository";
 import { artistMetadata } from "@/lib/seo/catalog-metadata";
+import { decodeCatalogSlug } from "@/lib/catalog/slug";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ type ArtistPageProps = {
 };
 
 export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: routeSlug } = await params;
+  const slug = decodeCatalogSlug(routeSlug);
   const artist = await getArtistBySlug(slug);
 
   if (!artist) {
@@ -28,7 +30,8 @@ export async function generateMetadata({ params }: ArtistPageProps): Promise<Met
 }
 
 export default async function ArtistPage({ params }: ArtistPageProps) {
-  const { slug } = await params;
+  const { slug: routeSlug } = await params;
+  const slug = decodeCatalogSlug(routeSlug);
   const [artist, products] = await Promise.all([getArtistBySlug(slug), listProductsByArtistSlug(slug)]);
 
   if (!artist) {

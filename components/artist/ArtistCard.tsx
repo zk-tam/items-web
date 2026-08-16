@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CatalogArtist as Artist } from "@/lib/catalog/types";
 import { PlusMinusIconButton } from "@/components/ui/PlusMinusIconButton";
+import { ExpandableCardDetails } from "@/components/ui/ExpandableCardDetails";
 
 type ArtistCardProps = {
   artist: Artist;
@@ -47,22 +48,20 @@ export function ArtistCard({ artist, priority = false }: ArtistCardProps) {
           />
         </div>
 
-        {expanded && (
-          <div className="mt-3 border-y border-items-blue py-3 text-[15px] font-bold leading-snug lg:text-[10px]">
-            {details.map((detail) => (
-              <p key={detail} className="mb-4 last:mb-0">
-                {detail}
-              </p>
+        <ExpandableCardDetails open={expanded} className="text-[15px] font-bold leading-snug lg:text-[10px]">
+          {details.map((detail) => (
+            <p key={detail} className="mb-4 last:mb-0">
+              {detail}
+            </p>
+          ))}
+          <div className="mt-4 flex flex-wrap gap-x-7 gap-y-2 text-[14px] font-black leading-none lg:text-[10px]">
+            {artist.links.map((link) => (
+              <a key={link.label} href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} rel={link.href.startsWith("http") ? "noreferrer" : undefined}>
+                + {link.label}
+              </a>
             ))}
-            <div className="mt-4 flex flex-wrap gap-x-7 gap-y-2 text-[14px] font-black leading-none lg:text-[10px]">
-              {artist.links.map((link) => (
-                <a key={link.label} href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} rel={link.href.startsWith("http") ? "noreferrer" : undefined}>
-                  + {link.label}
-                </a>
-              ))}
-            </div>
           </div>
-        )}
+        </ExpandableCardDetails>
       </div>
     </article>
   );

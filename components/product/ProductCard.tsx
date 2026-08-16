@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import type { CatalogItem as Product } from "@/lib/catalog/types";
 import { itemPriceLabels } from "@/lib/catalog/pricing";
 import { PlusMinusIconButton } from "@/components/ui/PlusMinusIconButton";
+import { ExpandableCardDetails } from "@/components/ui/ExpandableCardDetails";
 
 type ProductCardProps = {
   product: Product;
@@ -57,13 +58,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           />
         </div>
 
-        {expanded && (
-          <div className="mt-3 border-y border-items-blue py-3 text-[15px] font-bold leading-snug lg:text-[10px]">
-            {shortDescription && <p>{shortDescription}</p>}
-            {product.preview?.map((line) => <p key={line} className="mt-4">{line}</p>)}
-            {categoryAndSize && <p className="mt-12">{categoryAndSize}</p>}
-          </div>
-        )}
+        <ExpandableCardDetails open={expanded} className="text-[15px] font-bold leading-snug lg:text-[10px]">
+          {shortDescription && <p>{shortDescription}</p>}
+          {product.preview?.map((line) => <p key={line} className="mt-4">{line}</p>)}
+          {categoryAndSize && <p className="mt-12">{categoryAndSize}</p>}
+        </ExpandableCardDetails>
       </div>
     </article>
   );

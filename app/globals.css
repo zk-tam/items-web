@@ -78,6 +78,17 @@ select {
   color: var(--items-white);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html.items-theme-transition,
+  html.items-theme-transition *,
+  html.items-theme-transition *::before,
+  html.items-theme-transition *::after {
+    transition-duration: 260ms;
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
 @layer components {
   .items-frame {
     width: calc(100vw - 32px);

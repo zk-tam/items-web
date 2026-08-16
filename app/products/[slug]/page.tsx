@@ -5,6 +5,7 @@ import { ProductDetail } from "@/components/product/ProductDetail";
 import { getArtistBySlug, getProductBySlug } from "@/lib/db/items-repository";
 import { itemMetadata } from "@/lib/seo/catalog-metadata";
 import { productJsonLd, serializeJsonLd } from "@/lib/seo/product-jsonld";
+import { decodeCatalogSlug } from "@/lib/catalog/slug";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,8 @@ type ProductPageProps = {
 };
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: routeSlug } = await params;
+  const slug = decodeCatalogSlug(routeSlug);
   const product = await getProductBySlug(slug);
 
   if (!product) {
@@ -29,7 +31,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  const { slug } = await params;
+  const { slug: routeSlug } = await params;
+  const slug = decodeCatalogSlug(routeSlug);
   const product = await getProductBySlug(slug);
 
   if (!product) {

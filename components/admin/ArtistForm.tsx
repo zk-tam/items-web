@@ -36,6 +36,8 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
   const mediaUploaderRef = useRef<ItemMediaUploaderHandle>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [artistName, setArtistName] = useState(artist?.name ?? "");
+  const [artistDescription, setArtistDescription] = useState(artist?.description ?? "");
 
   useEffect(() => () => {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -121,10 +123,10 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
     <form onSubmit={handleSubmit} className="grid max-w-3xl gap-5">
       <input type="hidden" name="existingProfileImagePath" value={retainExistingImage ? existingProfileImagePath : ""} />
       <input type="hidden" name="previousProfileImagePath" value={existingProfileImagePath} />
-      <label className="grid gap-1 font-bold">Name<input name="name" required defaultValue={artist?.name} className="border border-items-blue bg-transparent p-3" /></label>
+      <label className="grid gap-1 font-bold">Name<input name="name" required value={artistName} onChange={(event) => setArtistName(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={artist?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">itemsyouwant.com/artists/{artist?.slug ?? "your-slug"}</span></label>
       <label className="grid gap-1 font-bold">Role / subtitle<input name="role" defaultValue={value(artist?.role)} className="border border-items-blue bg-transparent p-3" /></label>
-      <label className="grid gap-1 font-bold">Description<textarea name="description" rows={5} defaultValue={value(artist?.description)} className="border border-items-blue bg-transparent p-3" /></label>
+      <label className="grid gap-1 font-bold">Description<textarea name="description" rows={5} value={artistDescription} onChange={(event) => setArtistDescription(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3" /></label>
       <div className="grid gap-5 md:grid-cols-2">
         <label className="grid gap-1 font-bold">Email<input name="email" type="email" defaultValue={value(artist?.email)} className="border border-items-blue bg-transparent p-3" /></label>
         <label className="grid gap-1 font-bold">Website<input name="websiteUrl" type="url" defaultValue={value(artist?.websiteUrl)} className="border border-items-blue bg-transparent p-3" /></label>
@@ -134,8 +136,8 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
         seoTitle={artist?.seoTitle}
         seoDescription={artist?.seoDescription}
         urlPath={`/artists/${artist?.slug ?? "your-slug"}`}
-        fallbackTitle={artist?.name ?? "Artist name"}
-        fallbackDescription={artist?.description ?? artist?.role ?? "Artist description"}
+        fallbackTitle={artistName || "Artist name"}
+        fallbackDescription={artistDescription || "Artist description"}
       />
       <div className="grid gap-5 md:grid-cols-2">
         <div className="grid gap-3">

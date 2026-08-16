@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type Theme = "light" | "dark";
 
@@ -33,6 +33,7 @@ function applyTheme(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
+  const transitionTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -45,19 +46,37 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timeout);
   }, []);
 
+  useEffect(() => () => {
+    if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+    document.documentElement.classList.remove("items-theme-transition");
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    const root = document.documentElement;
+
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+      root.classList.remove("items-theme-transition");
+      void root.offsetWidth;
+      root.classList.add("items-theme-transition");
+      transitionTimerRef.current = window.setTimeout(() => {
+        root.classList.remove("items-theme-transition");
+        transitionTimerRef.current = null;
+      }, 280);
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, nextTheme);
+    applyTheme(nextTheme);
+    setTheme(nextTheme);
+  }, [theme]);
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
-      toggleTheme: () => {
-        setTheme((currentTheme) => {
-          const nextTheme = currentTheme === "dark" ? "light" : "dark";
-          window.localStorage.setItem(STORAGE_KEY, nextTheme);
-          applyTheme(nextTheme);
-          return nextTheme;
-        });
-      }
+      toggleTheme
     }),
-    [theme]
+    [theme, toggleTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

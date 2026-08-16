@@ -5,11 +5,14 @@ import { validateItemMediaUploadRequest } from "../lib/admin/item-media";
 describe("admin form validation", () => {
   it("normalizes a valid slug and converts MYR to cents", () => {
     expect(parseSlug("Thunder-Vase")).toBe("thunder-vase");
+    expect(parseSlug("@ZZ_Liu")).toBe("@zz_liu");
+    expect(parseSlug("ZZ.Liu")).toBe("zz.liu");
     expect(parsePriceCents("12.5")).toBe(1250);
   });
 
   it("rejects invalid slugs, prices, and social URLs", () => {
     expect(() => parseSlug("Invalid slug")).toThrow("Slug");
+    expect(() => parseSlug("@_")).toThrow("Slug");
     expect(() => parsePriceCents("10.999")).toThrow("Price");
     expect(() => parseLinks("Instagram | javascript:alert(1)")).toThrow("valid http(s)");
   });
