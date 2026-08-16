@@ -51,7 +51,7 @@ export function SiteShell({
                 viewportLocked={lockDesktopViewport}
               />
               <section className={cn("min-w-0", lockDesktopViewport && "flex min-h-0 flex-col")}>
-                <header className="flex h-[240px] shrink-0 items-start justify-end border-b border-items-blue p-9">
+                <header className="flex h-[150px] shrink-0 items-start justify-end border-b border-items-blue p-9">
                   <UtilityIcons />
                 </header>
                 <div className={cn("p-9", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>

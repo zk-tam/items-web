@@ -1,12 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
 import { archiveArtist, archiveItem, createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
 import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
+import { CATALOG_CACHE_TAG } from "@/lib/db/items-repository";
 
 function asOptionalFile(value: FormDataEntryValue | null) {
   return typeof File !== "undefined" && value instanceof File && value.size > 0 ? value : null;
@@ -63,6 +64,7 @@ function parseItemInput(formData: FormData) {
 }
 
 function revalidateCatalog() {
+  updateTag(CATALOG_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/artists");
   revalidatePath("/products/[slug]", "page");

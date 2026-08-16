@@ -1,7 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { primaryNavigation, type ArtistMenuItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
@@ -19,12 +18,6 @@ type DesktopSidebarProps = {
   viewportLocked?: boolean;
 };
 
-const NAV_ANIMATION_MS = 220;
-
-function shouldUseNativeNavigation(event: MouseEvent<HTMLAnchorElement>) {
-  return event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
-}
-
 export function DesktopSidebar({
   activeRoute,
   artistMenuItems = [],
@@ -37,21 +30,27 @@ export function DesktopSidebar({
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
   const displayRoute = pendingRoute ?? activeRoute;
 
-  function handleNavClick(item: (typeof primaryNavigation)[number], event: MouseEvent<HTMLAnchorElement>) {
-    if (shouldUseNativeNavigation(event) || item.route === displayRoute) {
-      return;
-    }
+  useEffect(() => {
+    const routes = new Set([
+      ...primaryNavigation.map((item) => item.href),
+      ...productMenuItems.map((item) => item.href),
+      ...artistMenuItems.map((item) => item.href)
+    ]);
+    const timer = window.setTimeout(() => {
+      routes.forEach((href) => router.prefetch(href));
+    }, 0);
 
-    event.preventDefault();
+    return () => window.clearTimeout(timer);
+  }, [artistMenuItems, productMenuItems, router]);
+
+  function handleNavClick(item: (typeof primaryNavigation)[number]) {
+    if (item.route === displayRoute) return;
     setPendingRoute(item.route);
-    window.setTimeout(() => {
-      router.push(item.href);
-    }, NAV_ANIMATION_MS);
   }
 
   return (
     <aside className={cn("hidden border-r border-items-blue lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "min-h-[calc(100vh-48px)]")}>
-      <div className="flex h-[240px] shrink-0 items-center border-b border-items-blue px-9">
+      <div className="flex h-[150px] shrink-0 items-center border-b border-items-blue px-9">
         <ItemsLogo />
       </div>
 
@@ -69,7 +68,8 @@ export function DesktopSidebar({
                 <Link
                   className={cn("flex items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
                   href={item.href}
-                  onClick={(event) => handleNavClick(item, event)}
+                  onClick={() => handleNavClick(item)}
+                  prefetch
                 >
                   <span>{item.label}</span>
                   <AnimatedPlusMinus open={isActive || isExpanded} />
@@ -78,7 +78,7 @@ export function DesktopSidebar({
                 {isExpanded && (
                   <div className="mt-4 space-y-[10px] pl-7 text-[11px] font-bold leading-none">
                     {menuItems.map((menuItem) => (
-                      <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover">
+                      <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
                         {menuItem.name}
                       </Link>
                     ))}

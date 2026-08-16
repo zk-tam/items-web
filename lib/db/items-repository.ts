@@ -1,6 +1,17 @@
+import "server-only";
+
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import type { CatalogArtist as Artist, CatalogItem as Product } from "@/lib/catalog/types";
 import { queryRows } from "@/lib/db/postgres";
 import { getStoragePublicUrl } from "@/lib/storage/supabase-storage";
+
+export const CATALOG_CACHE_TAG = "catalog";
+
+const catalogCacheOptions = {
+  revalidate: 300,
+  tags: [CATALOG_CACHE_TAG]
+};
 
 type ArtistRow = {
   id: string;
@@ -200,7 +211,7 @@ function mapItem(row: ItemRow): Product {
   };
 }
 
-export async function listProducts() {
+async function listProductsFromDatabase() {
   const rows = await queryRows<ItemRow>(`${itemSelect}
     where item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
     group by item.id, artist.id
@@ -208,7 +219,7 @@ export async function listProducts() {
   return (rows ?? []).map(mapItem);
 }
 
-export async function getProductBySlug(slug: string) {
+async function getProductBySlugFromDatabase(slug: string) {
   const rows = await queryRows<ItemRow>(`${itemSelect}
     where item.slug = $1 and item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
     group by item.id, artist.id
@@ -216,7 +227,7 @@ export async function getProductBySlug(slug: string) {
   return rows?.[0] ? mapItem(rows[0]) : undefined;
 }
 
-export async function listProductsByArtistSlug(artistSlug: string) {
+async function listProductsByArtistSlugFromDatabase(artistSlug: string) {
   const rows = await queryRows<ItemRow>(`${itemSelect}
     where artist.slug = $1 and item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
     group by item.id, artist.id
@@ -224,7 +235,7 @@ export async function listProductsByArtistSlug(artistSlug: string) {
   return (rows ?? []).map(mapItem);
 }
 
-export async function listArtists() {
+async function listArtistsFromDatabase() {
   const rows = await queryRows<ArtistRow>(`${artistSelect}
     where artist.is_published = true and artist.archived_at is null
     group by artist.id
@@ -232,10 +243,22 @@ export async function listArtists() {
   return (rows ?? []).map(mapArtist);
 }
 
-export async function getArtistBySlug(slug: string) {
+async function getArtistBySlugFromDatabase(slug: string) {
   const rows = await queryRows<ArtistRow>(`${artistSelect}
     where artist.slug = $1 and artist.is_published = true and artist.archived_at is null
     group by artist.id
     limit 1`, [slug]);
   return rows?.[0] ? mapArtist(rows[0]) : undefined;
 }
+
+const cachedListProducts = unstable_cache(listProductsFromDatabase, ["catalog-products"], catalogCacheOptions);
+const cachedGetProductBySlug = unstable_cache(getProductBySlugFromDatabase, ["catalog-product-by-slug"], catalogCacheOptions);
+const cachedListProductsByArtistSlug = unstable_cache(listProductsByArtistSlugFromDatabase, ["catalog-products-by-artist"], catalogCacheOptions);
+const cachedListArtists = unstable_cache(listArtistsFromDatabase, ["catalog-artists"], catalogCacheOptions);
+const cachedGetArtistBySlug = unstable_cache(getArtistBySlugFromDatabase, ["catalog-artist-by-slug"], catalogCacheOptions);
+
+export const listProducts = cache(cachedListProducts);
+export const getProductBySlug = cache(cachedGetProductBySlug);
+export const listProductsByArtistSlug = cache(cachedListProductsByArtistSlug);
+export const listArtists = cache(cachedListArtists);
+export const getArtistBySlug = cache(cachedGetArtistBySlug);

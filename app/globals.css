@@ -24,18 +24,18 @@
 }
 
 [data-theme="dark"] {
-  --items-blue: #6f9aff;
-  --items-blue-hover: #9ab8ff;
-  --items-canvas: #06070a;
-  --items-surface: #0b0d12;
-  --items-dim: #151821;
-  --items-placeholder: #252934;
-  --items-line-soft: rgba(111, 154, 255, 0.34);
+  --items-blue: #0057ff;
+  --items-blue-hover: #004be0;
+  --items-canvas: #e6e7e8;
+  --items-surface: #e6e7e8;
+  --items-dim: #d9dadb;
+  --items-placeholder: #cccccc;
+  --items-line-soft: rgba(0, 87, 255, 0.28);
 
-  --background: 225 25% 3%;
-  --foreground: 220 100% 72%;
-  --border: 220 100% 72%;
-  --primary: 220 100% 72%;
+  --background: 210 4% 91%;
+  --foreground: 220 100% 50%;
+  --border: 220 100% 50%;
+  --primary: 220 100% 50%;
   --primary-foreground: 0 0% 100%;
 }
 

@@ -4,19 +4,17 @@ import { cn } from "@/lib/utils";
 
 type ItemsLogoProps = {
   className?: string;
-  compact?: boolean;
 };
 
-export function ItemsLogo({ className, compact = false }: ItemsLogoProps) {
+export function ItemsLogo({ className }: ItemsLogoProps) {
   return (
     <Link aria-label="ITEMS home" className={cn("block text-items-blue", className)} href="/">
       <Image
         src="/assets/logo.svg"
         alt="ITEMS"
-        width={112}
-        height={124}
+        width={100}
+        height={100}
         priority
-        className={cn("h-auto", compact ? "w-[126px] sm:w-[136px]" : "w-[168px]")}
       />
     </Link>
   );
