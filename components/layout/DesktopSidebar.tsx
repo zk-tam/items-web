@@ -49,7 +49,7 @@ export function DesktopSidebar({
   }
 
   return (
-    <aside className={cn("hidden border-r border-items-blue lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "min-h-[calc(100vh-48px)]")}>
+    <aside className={cn("hidden border-r border-items-blue lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "sticky top-6 h-[calc(100dvh-48px)] min-h-0 self-start")}>
       <div className="flex h-[150px] shrink-0 items-center border-b border-items-blue px-9">
         <ItemsLogo />
       </div>

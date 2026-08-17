@@ -18,9 +18,10 @@ type MediaFigureProps = {
   label: string;
   showCaption: boolean;
   priority?: boolean;
+  parallax?: boolean;
 };
 
-function MediaFigure({ entry, index, label, showCaption, priority = index === 0 }: MediaFigureProps) {
+function MediaFigure({ entry, index, label, showCaption, priority = index === 0, parallax = false }: MediaFigureProps) {
   return (
     <figure className="relative overflow-visible">
       <div className="relative aspect-[4/5] overflow-hidden rounded-itemLg bg-items-placeholder">
@@ -31,10 +32,10 @@ function MediaFigure({ entry, index, label, showCaption, priority = index === 0 
             fill
             priority={priority}
             sizes="(max-width: 1023px) 86vw, 50vw"
-            className="object-cover"
+            className={`object-cover${parallax ? " items-media-parallax" : ""}`}
           />
         ) : (
-          <video src={entry.src} controls playsInline preload="metadata" className="h-full w-full object-cover" aria-label={entry.alt || `${label} video ${index + 1}`} />
+          <video src={entry.src} controls playsInline preload="metadata" className={`h-full w-full object-cover${parallax ? " items-media-parallax" : ""}`} aria-label={entry.alt || `${label} video ${index + 1}`} />
         )}
       </div>
       {showCaption && entry.alt ? <figcaption className="pt-2 text-sm font-bold">{entry.alt}</figcaption> : null}
@@ -68,14 +69,14 @@ function CarouselMediaGallery({ media, label, showCaptions }: Pick<CatalogMediaG
   ];
 
   function scrollToSlide(index: number, behavior: ScrollBehavior = "smooth") {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    viewport.scrollTo({ left: viewport.clientWidth * index, behavior });
+    const scrollViewport = viewportRef.current;
+    if (!scrollViewport) return;
+    scrollViewport.scrollTo({ left: scrollViewport.clientWidth * index, behavior });
   }
 
   useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
+    const scrollViewport = viewportRef.current;
+    if (!scrollViewport) return;
 
     const frame = window.requestAnimationFrame(() => {
       scrollToSlide(1, "auto");
@@ -161,23 +162,85 @@ function CarouselMediaGallery({ media, label, showCaptions }: Pick<CatalogMediaG
   );
 }
 
+function StackedMediaGallery({
+  media,
+  label,
+  showCaptions,
+  scrollable = false
+}: Pick<CatalogMediaGalleryProps, "media" | "label"> & { showCaptions: boolean; scrollable?: boolean }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!scrollable) return;
+
+    const scrollViewport = viewportRef.current;
+    if (!scrollViewport) return;
+    const scrollArea: HTMLDivElement = scrollViewport;
+
+    function updateParallax() {
+      frameRef.current = null;
+      const viewportBounds = scrollArea.getBoundingClientRect();
+      const viewportCenter = viewportBounds.top + viewportBounds.height / 2;
+
+      itemRefs.current.forEach((item) => {
+        if (!item) return;
+
+        const bounds = item.getBoundingClientRect();
+        const itemCenter = bounds.top + bounds.height / 2;
+        const progress = Math.max(-1, Math.min(1, (itemCenter - viewportCenter) / viewportBounds.height));
+        item.style.setProperty("--items-media-parallax-y", `${Math.round(-progress * 18)}px`);
+        item.style.setProperty("--items-media-parallax-scale", `${1.03 + (1 - Math.abs(progress)) * 0.025}`);
+      });
+    }
+
+    function scheduleParallax() {
+      if (frameRef.current !== null) return;
+      frameRef.current = window.requestAnimationFrame(updateParallax);
+    }
+
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleParallax);
+    scrollArea.addEventListener("scroll", scheduleParallax, { passive: true });
+    resizeObserver?.observe(scrollArea);
+    scheduleParallax();
+
+    return () => {
+      scrollArea.removeEventListener("scroll", scheduleParallax);
+      resizeObserver?.disconnect();
+      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
+    };
+  }, [media.length, scrollable]);
+
+  return (
+    <div ref={scrollable ? viewportRef : undefined} className={scrollable ? "grid h-full min-h-0 snap-y snap-proximity content-start gap-5 overflow-y-auto overscroll-contain pb-9 pr-3" : "grid gap-5"} aria-label={label}>
+      {media.map((entry, index) => (
+        <div key={entry.id ?? entry.src} ref={scrollable ? (element) => { itemRefs.current[index] = element; } : undefined} className={`relative${scrollable ? " snap-start" : ""}`}>
+          <MediaFigure entry={entry} index={index} label={label} showCaption={showCaptions} parallax={scrollable} />
+          {index === 0 && <><span aria-hidden className="items-plus-marker left-[-30px] top-[62%] lg:hidden" /><span aria-hidden className="items-plus-marker right-[-30px] top-[62%] lg:hidden" /></>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function CatalogMediaGallery({ media, label, emptyLabel, carousel = false, showCaptions = true }: CatalogMediaGalleryProps) {
   if (media.length === 0) {
     return emptyLabel ? <div className="aspect-[4/5] rounded-itemLg bg-items-placeholder" aria-label={emptyLabel} /> : null;
   }
 
   if (carousel) {
-    return <CarouselMediaGallery media={media} label={label} showCaptions={showCaptions} />;
+    return (
+      <>
+        <div className="lg:hidden">
+          <CarouselMediaGallery media={media} label={label} showCaptions={showCaptions} />
+        </div>
+        <div className="hidden h-full min-h-0 lg:block">
+          <StackedMediaGallery media={media} label={label} showCaptions={showCaptions} scrollable />
+        </div>
+      </>
+    );
   }
 
-  return (
-    <div className="grid gap-5" aria-label={label}>
-      {media.map((entry, index) => (
-        <div key={entry.id ?? entry.src} className="relative">
-          <MediaFigure entry={entry} index={index} label={label} showCaption={showCaptions} />
-          {index === 0 && <><span aria-hidden className="items-plus-marker left-[-30px] top-[62%]" /><span aria-hidden className="items-plus-marker right-[-30px] top-[62%]" /></>}
-        </div>
-      ))}
-    </div>
-  );
+  return <StackedMediaGallery media={media} label={label} showCaptions={showCaptions} />;
 }
