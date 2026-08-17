@@ -1,4 +1,4 @@
-export const MAX_ITEM_MEDIA = 20;
+export const MAX_ITEM_MEDIA = 30;
 export const MAX_ITEM_MEDIA_ALT_LENGTH = 250;
 export const MAX_ITEM_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_ITEM_VIDEO_BYTES = 500 * 1024 * 1024;
