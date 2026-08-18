@@ -40,7 +40,7 @@ export function SiteShell({
           {detailHeader ? (
             <section className={cn("min-w-0", lockDesktopViewport && "flex h-full min-h-0 flex-col")}>
               <DetailPageHeader />
-              <div className={cn("p-8", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
+              <div className={cn("p-8 pb-0", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
             </section>
           ) : (
             <div className={cn("grid grid-cols-[var(--items-sidebar-width)_minmax(0,1fr)]", lockDesktopViewport ? "h-full min-h-0" : "min-h-[calc(100vh-48px)]")}>
