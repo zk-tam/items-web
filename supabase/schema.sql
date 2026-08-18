@@ -35,7 +35,7 @@ create table if not exists artists (
   initially_expanded boolean not null default false,
   is_published boolean not null default true,
   archived_at timestamptz,
-  sort_order integer not null default 0,
+  sort_order integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -84,7 +84,7 @@ create table if not exists items (
   order_message text,
   is_published boolean not null default true,
   archived_at timestamptz,
-  sort_order integer not null default 0,
+  sort_order integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -184,8 +184,8 @@ create table if not exists newsletter_subscribers (
   subscribed_at timestamptz not null default now()
 );
 
-create index if not exists artists_catalog_idx on artists (is_published, archived_at, sort_order, name);
-create index if not exists items_catalog_idx on items (artist_id, is_published, archived_at, sort_order, name);
+create index if not exists artists_catalog_idx on artists (is_published, archived_at, sort_order asc nulls last, created_at desc, name);
+create index if not exists items_catalog_idx on items (artist_id, is_published, archived_at, sort_order asc nulls last, created_at desc, name);
 create index if not exists item_media_item_idx on item_media (item_id, sort_order);
 create index if not exists artist_media_artist_idx on artist_media (artist_id, sort_order);
 create index if not exists artist_links_artist_idx on artist_links (artist_id, sort_order);

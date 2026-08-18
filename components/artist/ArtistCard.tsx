@@ -37,15 +37,37 @@ export function ArtistCard({ artist, priority = false }: ArtistCardProps) {
           </div>
         </Link>
 
-        <div className="grid min-h-[52px] grid-cols-[minmax(0,1fr)_auto] items-start gap-4 pt-4 text-[16px] font-black leading-tight lg:min-h-[44px] lg:text-[12px]">
-          <Link href={href} className="min-w-0 hover:text-items-blueHover" onFocus={() => router.prefetch(href)} onMouseEnter={() => router.prefetch(href)} prefetch>
-            {artist.name} | {artist.role}
+        <div className="pt-4">
+          <Link
+            href={href}
+            className="block min-w-0 text-[20px] font-heavy leading-tight hover:text-items-blueHover lg:text-[16px]"
+            onFocus={() => router.prefetch(href)}
+            onMouseEnter={() => router.prefetch(href)}
+            prefetch
+          >
+            {artist.name}
           </Link>
-          <PlusMinusIconButton
-            label={`${expanded ? "Collapse" : "Expand"} ${artist.name} details`}
-            onClick={() => setExpanded((current) => !current)}
-            open={expanded}
-          />
+
+          <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 text-[16px] font-black leading-tight lg:text-[12px]">
+            {artist.role ? (
+              <Link
+                href={href}
+                className="min-w-0 hover:text-items-blueHover"
+                onFocus={() => router.prefetch(href)}
+                onMouseEnter={() => router.prefetch(href)}
+                prefetch
+              >
+                {artist.role}
+              </Link>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+            <PlusMinusIconButton
+              label={`${expanded ? "Collapse" : "Expand"} ${artist.name} details`}
+              onClick={() => setExpanded((current) => !current)}
+              open={expanded}
+            />
+          </div>
         </div>
 
         <ExpandableCardDetails open={expanded} className="text-[15px] font-medium leading-snug lg:text-[10px]">

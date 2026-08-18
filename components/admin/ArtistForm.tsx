@@ -178,7 +178,7 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
       </div>
       <ItemMediaUploader ref={mediaUploaderRef} area="artists" existingMedia={existingMedia} />
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-1 font-bold">Sort order<input name="sortOrder" type="number" min="0" defaultValue={artist?.sortOrder ?? 0} className="border border-items-blue bg-transparent p-3" /></label>
+        <label className="grid gap-1 font-bold">Display order <span className="text-xs font-normal">Optional. Lower numbers appear first; otherwise newest created content appears first.</span><input name="sortOrder" type="number" min="0" defaultValue={artist?.sortOrder ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
         <label className="flex items-center gap-2 font-bold"><input name="isPublished" type="checkbox" defaultChecked={artist?.isPublished ?? true} /> Published</label>
         <label className="flex items-center gap-2 font-bold"><input name="initiallyExpanded" type="checkbox" defaultChecked={artist?.initiallyExpanded ?? false} /> Expand bio</label>
       </div>

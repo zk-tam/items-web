@@ -71,6 +71,18 @@ export function parseNonNegativeInteger(value: FormDataEntryValue | null, label:
   return number;
 }
 
+export function parseOptionalNonNegativeInteger(value: FormDataEntryValue | null, label: string) {
+  const text = optionalText(value);
+  if (!text) {
+    return null;
+  }
+  const number = Number(text);
+  if (!Number.isInteger(number) || number < 0) {
+    throw new Error(`${label} must be a non-negative whole number.`);
+  }
+  return number;
+}
+
 export function parsePriceCents(value: FormDataEntryValue | null) {
   return parseOptionalPriceCents(value) ?? 0;
 }

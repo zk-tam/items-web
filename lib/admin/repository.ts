@@ -20,7 +20,7 @@ export type AdminArtist = {
   initiallyExpanded: boolean;
   isPublished: boolean;
   archivedAt: Date | null;
-  sortOrder: number;
+  sortOrder: number | null;
   itemCount?: number;
   links: Array<{ label: string; url: string; sortOrder: number }>;
   media: Array<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>;
@@ -46,7 +46,7 @@ export type AdminItem = {
   orderMessage: string | null;
   isPublished: boolean;
   archivedAt: Date | null;
-  sortOrder: number;
+  sortOrder: number | null;
   media: Array<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>;
 };
 
@@ -115,7 +115,7 @@ export async function listAdminArtists() {
      from artists artist
      left join items item on item.artist_id = artist.id and item.archived_at is null
      group by artist.id
-     order by artist.archived_at nulls first, artist.sort_order asc, artist.name asc`
+     order by artist.archived_at nulls first, artist.sort_order asc nulls last, artist.created_at desc, artist.name asc`
   )) ?? [];
 }
 
@@ -175,7 +175,7 @@ export async function listAdminItems() {
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
             item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id
-     order by item.archived_at nulls first, item.sort_order asc, item.name asc`
+     order by item.archived_at nulls first, item.sort_order asc nulls last, item.created_at desc, item.name asc`
   )) ?? [];
 }
 

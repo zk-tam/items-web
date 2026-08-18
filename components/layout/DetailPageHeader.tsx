@@ -38,7 +38,7 @@ export function DetailPageHeader() {
       <div className="absolute inset-y-0 right-9 flex flex-col justify-end">
         <UtilityIcons stacked className="h-[var(--items-detail-header-controls-height)]" />
       </div>
-      <div aria-hidden className="absolute bottom-0 left-9 right-9 h-px bg-items-blue" />
+      <div aria-hidden className="absolute bottom-0 left-8 right-8 h-px bg-items-blue" />
     </header>
   );
 }

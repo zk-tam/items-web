@@ -28,7 +28,7 @@ type ArtistRow = {
   initiallyExpanded: boolean;
   isPublished: boolean;
   archivedAt: Date | null;
-  sortOrder: number;
+  sortOrder: number | null;
   links: Array<{ id: string; label: string; href: string; sortOrder: number }> | null;
   media: Array<{ id: string; storagePath: string; alt: string | null; mediaType: "image" | "video"; mimeType: string; sortOrder: number }> | null;
 };
@@ -56,7 +56,7 @@ type ItemRow = {
   orderMessage: string | null;
   isPublished: boolean;
   archivedAt: Date | null;
-  sortOrder: number;
+  sortOrder: number | null;
   media: Array<{ id: string; storagePath: string; alt: string | null; mediaType: "image" | "video"; mimeType: string; sortOrder: number }> | null;
 };
 
@@ -170,7 +170,7 @@ function mapArtist(row: ArtistRow): Artist {
     initiallyExpanded: row.initiallyExpanded,
     isPublished: row.isPublished,
     archivedAt: row.archivedAt?.toISOString() ?? null,
-    sortOrder: row.sortOrder
+    sortOrder: row.sortOrder ?? undefined
   };
 }
 
@@ -207,7 +207,7 @@ function mapItem(row: ItemRow): Product {
     orderMessage: row.orderMessage ?? `Hello ITEMS, I want to order ${row.name} by ${row.artistName}.`,
     isPublished: row.isPublished,
     archivedAt: row.archivedAt?.toISOString() ?? null,
-    sortOrder: row.sortOrder
+    sortOrder: row.sortOrder ?? undefined
   };
 }
 
@@ -215,7 +215,7 @@ async function listProductsFromDatabase() {
   const rows = await queryRows<ItemRow>(`${itemSelect}
     where item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
     group by item.id, artist.id
-    order by item.sort_order asc, item.name asc`);
+    order by item.sort_order asc nulls last, item.created_at desc, item.name asc`);
   return (rows ?? []).map(mapItem);
 }
 
@@ -231,7 +231,7 @@ async function listProductsByArtistSlugFromDatabase(artistSlug: string) {
   const rows = await queryRows<ItemRow>(`${itemSelect}
     where artist.slug = $1 and item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
     group by item.id, artist.id
-    order by item.sort_order asc, item.name asc`, [artistSlug]);
+    order by item.sort_order asc nulls last, item.created_at desc, item.name asc`, [artistSlug]);
   return (rows ?? []).map(mapItem);
 }
 
@@ -239,7 +239,7 @@ async function listArtistsFromDatabase() {
   const rows = await queryRows<ArtistRow>(`${artistSelect}
     where artist.is_published = true and artist.archived_at is null
     group by artist.id
-    order by artist.sort_order asc, artist.name asc`);
+    order by artist.sort_order asc nulls last, artist.created_at desc, artist.name asc`);
   return (rows ?? []).map(mapArtist);
 }
 

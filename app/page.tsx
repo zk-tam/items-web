@@ -14,7 +14,7 @@ export default async function HomePage() {
   }));
 
   return (
-    <SiteShell activeRoute="shop" productMenuExpanded productMenuItems={productMenuItems} lockDesktopViewport contentClassName="items-grid-scroll-fade pb-20">
+    <SiteShell activeRoute="shop" productMenuExpanded productMenuItems={productMenuItems} lockDesktopViewport contentClassName="items-grid-scroll-fade pb-24">
       <ProductGrid products={products} />
     </SiteShell>
   );

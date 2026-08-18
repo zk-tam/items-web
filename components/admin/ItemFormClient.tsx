@@ -29,7 +29,7 @@ type ItemValues = {
   stockCount: number;
   orderMessage: string | null;
   isPublished: boolean;
-  sortOrder: number;
+  sortOrder: number | null;
 };
 
 type ExistingMedia = {
@@ -110,7 +110,7 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
         <label className="grid gap-1 font-bold">Stock count<input name="stockCount" type="number" min="0" defaultValue={item?.stockCount ?? 0} className="border border-items-blue bg-transparent p-3" /></label>
       </div>
       <div className="grid gap-5 md:grid-cols-2">
-        <label className="grid gap-1 font-bold">Sort order<input name="sortOrder" type="number" min="0" defaultValue={item?.sortOrder ?? 0} className="border border-items-blue bg-transparent p-3" /></label>
+        <label className="grid gap-1 font-bold">Display order <span className="text-xs font-normal">Optional. Lower numbers appear first; otherwise newest created content appears first.</span><input name="sortOrder" type="number" min="0" defaultValue={item?.sortOrder ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       </div>
       <label className="grid gap-1 font-bold">WhatsApp message<input name="orderMessage" defaultValue={item?.orderMessage ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       <ItemMediaUploader ref={mediaUploaderRef} existingMedia={existingMedia} />

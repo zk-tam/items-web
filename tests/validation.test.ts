@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug } from "../lib/admin/validation";
+import { parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseOptionalNonNegativeInteger, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug } from "../lib/admin/validation";
 import { validateItemMediaUploadRequest } from "../lib/admin/item-media";
 
 describe("admin form validation", () => {
+  it("allows a blank optional display order", () => {
+    expect(parseOptionalNonNegativeInteger(null, "Display order")).toBeNull();
+    expect(parseOptionalNonNegativeInteger(new FormData().get("displayOrder"), "Display order")).toBeNull();
+    expect(parseOptionalNonNegativeInteger("3", "Display order")).toBe(3);
+    expect(() => parseOptionalNonNegativeInteger("-1", "Display order")).toThrow("non-negative");
+  });
+
   it("normalizes a valid slug and converts MYR to cents", () => {
     expect(parseSlug("Thunder-Vase")).toBe("thunder-vase");
     expect(parseSlug("@ZZ_Liu")).toBe("@zz_liu");

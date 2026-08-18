@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
 import { archiveArtist, archiveItem, createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
-import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
+import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 import { CATALOG_CACHE_TAG } from "@/lib/db/items-repository";
 
@@ -31,7 +31,7 @@ function parseArtistInput(formData: FormData, profileImagePath: string | null) {
     profileImageAlt: optionalText(formData.get("profileImageAlt")),
     initiallyExpanded: isChecked(formData.get("initiallyExpanded")),
     isPublished: isChecked(formData.get("isPublished")),
-    sortOrder: parseNonNegativeInteger(formData.get("sortOrder"), "Sort order"),
+    sortOrder: parseOptionalNonNegativeInteger(formData.get("sortOrder"), "Sort order"),
     links: parseLinks(formData.get("socialLinks"))
   };
 }
@@ -59,7 +59,7 @@ function parseItemInput(formData: FormData) {
     stockCount: parseNonNegativeInteger(formData.get("stockCount"), "Stock count"),
     orderMessage: optionalText(formData.get("orderMessage")),
     isPublished: isChecked(formData.get("isPublished")),
-    sortOrder: parseNonNegativeInteger(formData.get("sortOrder"), "Sort order")
+    sortOrder: parseOptionalNonNegativeInteger(formData.get("sortOrder"), "Sort order")
   };
 }
 
