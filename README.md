@@ -25,6 +25,10 @@ ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="a-long-unique-password" npm run 
 
 4. Sign in at `/admin/login`. The panel manages artists, items, image uploads, manual WhatsApp-originated orders, invoice PDFs, and receipt PDFs.
 
+## First-party analytics
+
+Set `ANALYTICS_HASH_SECRET` and `CRON_SECRET` to separate random values before deploying. Analytics stores only a server-side HMAC of an anonymous browser token, page paths, external referrer hostnames, and Vercel-derived two-letter country codes—never raw IP addresses. The daily Vercel Cron job removes events after 13 months. Apply the analytics migration files in order to an existing database, then view reports at `/admin/analytics`.
+
 Run the live database smoke test after setup. It validates the schema, RLS, constraints, order snapshots, and image bucket inside a rolled-back transaction, so it does not leave test catalog or order records behind:
 
 ```bash

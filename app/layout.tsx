@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { AnalyticsTracker } from "@/components/analytics/AnalyticsTracker";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import "./globals.css";
 
@@ -72,7 +73,7 @@ export default function RootLayout({
         />
       </head>
       <body className={avenir.variable}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider><AnalyticsTracker />{children}</ThemeProvider>
       </body>
     </html>
   );

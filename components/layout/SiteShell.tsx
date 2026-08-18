@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { DesktopSidebar } from "@/components/layout/DesktopSidebar";
 import { DetailPageHeader } from "@/components/layout/DetailPageHeader";
+import { FooterLinks } from "@/components/layout/FooterLinks";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import type { ArtistMenuItem, PrimaryRoute, ProductMenuItem } from "@/data/navigation";
@@ -65,6 +66,7 @@ export function SiteShell({
         <div className="items-mobile-frame">
           <MobileHeader activeRoute={activeRoute} />
           <div className={cn("px-7 py-8", contentClassName)}>{children}</div>
+          <footer className="px-7 pb-8"><FooterLinks /></footer>
         </div>
       </div>
     </div>

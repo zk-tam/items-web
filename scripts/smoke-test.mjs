@@ -17,6 +17,7 @@ const client = new pg.Client({
     : undefined
 });
 const token = randomUUID().replaceAll("-", "");
+const analyticsEventId = randomUUID();
 const artistSlug = `audit-artist-${token.slice(0, 10)}`;
 const itemSlug = `audit-item-${token.slice(10, 20)}`;
 
@@ -28,9 +29,9 @@ try {
      join pg_namespace on pg_namespace.oid = pg_class.relnamespace
      where nspname = 'public'
        and relname = any($1::text[])`,
-    [["artists", "artist_links", "artist_media", "items", "item_media", "orders", "order_lines", "order_documents", "admin_users", "admin_sessions"]]
+    [["artists", "artist_links", "artist_media", "items", "item_media", "orders", "order_lines", "order_documents", "admin_users", "admin_sessions", "analytics_page_views"]]
   );
-  if (rls.rows.length !== 10 || rls.rows.some((row) => !row.relrowsecurity)) {
+  if (rls.rows.length !== 11 || rls.rows.some((row) => !row.relrowsecurity)) {
     throw new Error("Expected RLS to be enabled on every ITEMS application table.");
   }
 
@@ -134,6 +135,19 @@ try {
     if (totals.rows[0].line_count !== 1 || totals.rows[0].total_cents !== 2500) {
       throw new Error("Order-line snapshots or totals did not persist correctly.");
     }
+
+    await client.query(
+      `insert into analytics_page_views (event_id, visitor_hash, page_path, referrer_host, country_code, is_landing)
+       values ($1, $2, '/products/audit-item', 'www.instagram.com', 'MY', true)`,
+      [analyticsEventId, "a".repeat(64)]
+    );
+    const analytics = await client.query(
+      `select page_path, referrer_host, country_code, is_landing from analytics_page_views where event_id = $1`,
+      [analyticsEventId]
+    );
+    if (analytics.rows[0]?.page_path !== "/products/audit-item" || analytics.rows[0]?.referrer_host !== "www.instagram.com" || analytics.rows[0]?.country_code !== "MY" || analytics.rows[0]?.is_landing !== true) {
+      throw new Error("Analytics page-view data did not persist correctly.");
+    }
   } finally {
     await client.query("rollback");
   }
@@ -143,7 +157,7 @@ try {
     throw new Error("catalog-images is missing or is not public.");
   }
 
-  console.log("Integration smoke test passed: schema, RLS, SEO metadata, artist/item media ordering, media types, constraints, order snapshots, and image bucket.");
+  console.log("Integration smoke test passed: schema, RLS, analytics, SEO metadata, artist/item media ordering, media types, constraints, order snapshots, and image bucket.");
 } finally {
   await client.end();
 }

@@ -54,5 +54,9 @@ export const footerLinks = [
   {
     label: "Terms & Conditions +",
     href: "/shipping-returns"
+  },
+  {
+    label: "Privacy & Analytics +",
+    href: "/privacy"
   }
 ];
