@@ -276,14 +276,23 @@ function StackedMediaGallery({
     };
   }, [media.length, scrollable]);
 
-  return (
+  const gallery = (
     <div ref={scrollable ? viewportRef : undefined} className={scrollable ? "items-media-scroll grid h-full min-h-0 snap-y snap-mandatory content-start justify-items-center gap-4 overflow-y-auto overscroll-contain" : "grid gap-5"} aria-label={label}>
       {media.map((entry, index) => (
         <div key={entry.id ?? entry.src} ref={scrollable ? (element) => { itemRefs.current[index] = element; } : undefined} className={`relative${mediaCardClassName}`}>
           <MediaFigure entry={entry} index={index} label={label} showCaption={showCaptions} parallax={scrollable} fillContainer={scrollable} muted={scrollable && activeIndex !== index} />
-          {index === 0 && <><span aria-hidden className="items-plus-marker left-[-30px] top-[62%] lg:hidden" /><span aria-hidden className="items-plus-marker right-[-30px] top-[62%] lg:hidden" /></>}
         </div>
       ))}
+    </div>
+  );
+
+  if (!scrollable) return gallery;
+
+  return (
+    <div className="items-media-viewport relative h-full min-h-0" data-single-media={hasSingleMedia || undefined}>
+      {gallery}
+      <span aria-hidden className="items-plus-marker items-media-marker-left -translate-y-1/2" />
+      <span aria-hidden className="items-plus-marker items-media-marker-right -translate-y-1/2" />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { DesktopSidebar } from "@/components/layout/DesktopSidebar";
 import { DetailPageHeader } from "@/components/layout/DetailPageHeader";
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { MobileHeader } from "@/components/layout/MobileHeader";
+import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import type { ArtistMenuItem, PrimaryRoute, ProductMenuItem } from "@/data/navigation";
 import { cn } from "@/lib/utils";
@@ -35,11 +36,11 @@ export function SiteShell({
   return (
     <div className={cn("min-h-screen", lockDesktopViewport && "lg:h-screen lg:overflow-hidden", theme === "dim" && "items-dim")}>
       <div className="hidden lg:block">
-        <div className={cn("items-frame max-w-[1600px]", lockDesktopViewport && "h-[calc(100vh-48px)]")}>
+        <div className={cn("items-frame max-w-[1600px]", lockDesktopViewport && "h-[calc(100vh-30px)]")}>
           {detailHeader ? (
             <section className={cn("min-w-0", lockDesktopViewport && "flex h-full min-h-0 flex-col")}>
               <DetailPageHeader />
-              <div className={cn("p-9", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
+              <div className={cn("p-8", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
             </section>
           ) : (
             <div className={cn("grid grid-cols-[var(--items-sidebar-width)_minmax(0,1fr)]", lockDesktopViewport ? "h-full min-h-0" : "min-h-[calc(100vh-48px)]")}>
@@ -56,7 +57,7 @@ export function SiteShell({
                   <UtilityIcons stacked className="h-[var(--items-header-logo-size)]" />
                   <div aria-hidden className="absolute bottom-0 left-0 right-9 h-px bg-items-blue" />
                 </header>
-                <div className={cn("p-9", lockDesktopViewport && "min-h-0 flex-1 overflow-y-auto overscroll-contain", contentClassName)}>{children}</div>
+                <div className={cn("p-8", lockDesktopViewport && "min-h-0 flex-1 overflow-y-auto overscroll-contain", contentClassName)}>{children}</div>
               </section>
             </div>
           )}
@@ -67,7 +68,7 @@ export function SiteShell({
         <div className="items-mobile-frame">
           <MobileHeader activeRoute={activeRoute} />
           <div className={cn("px-7 py-8", contentClassName)}>{children}</div>
-          <footer className="px-7 pb-8"><FooterLinks /></footer>
+          <footer className="px-7 pb-8"><FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} /></footer>
         </div>
       </div>
     </div>

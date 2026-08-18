@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { primaryNavigation, type ArtistMenuItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { ItemsLogo } from "@/components/layout/ItemsLogo";
+import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
 import { AnimatedPlusMinus } from "@/components/ui/AnimatedPlusMinus";
 import { cn } from "@/lib/utils";
 
@@ -51,11 +52,11 @@ export function DesktopSidebar({
   return (
     <aside className={cn("relative hidden lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "sticky top-6 h-[calc(100dvh-48px)] min-h-0 self-start")}>
       <div className="relative flex h-[var(--items-header-height)] shrink-0 items-center px-9">
-        <ItemsLogo />
+        <ItemsLogo className="self-start" imageClassName="w-[165px]" />
         <div aria-hidden className="absolute bottom-0 left-9 right-0 h-px bg-items-blue" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-9 py-8">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-8 pb-9 pt-8">
         <nav aria-label="Primary navigation" className="space-y-4 text-[13px] font-black leading-none">
           {primaryNavigation.map((item) => {
             const isActive = displayRoute === item.route;
@@ -79,8 +80,8 @@ export function DesktopSidebar({
                 {(item.route === "shop" || item.route === "artists") && (
                   <div
                     className={cn(
-                      "grid overflow-hidden transition-[grid-template-rows,margin] duration-300 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none",
-                      isExpanded ? "mt-4 grid-rows-[1fr]" : "mt-0 grid-rows-[0fr]"
+                      "items-sidebar-disclosure",
+                      isExpanded && "items-sidebar-disclosure-open"
                     )}
                   >
                     <div className="min-h-0 overflow-hidden">
@@ -107,7 +108,7 @@ export function DesktopSidebar({
         </nav>
 
         <div className="mt-auto pt-10">
-          <FooterLinks hideInstagram hideShipping />
+          <FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} />
         </div>
       </div>
       <div aria-hidden className="items-sidebar-divider absolute bottom-9 right-0 w-px bg-items-blue" />

@@ -16,7 +16,7 @@ type ArtistCardProps = {
 export function ArtistCard({ artist, priority = false }: ArtistCardProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const details = [artist.role, artist.bio].filter(Boolean);
+  const details = [artist.bio].filter(Boolean);
   const href = `/artists/${artist.slug}`;
 
   return (
@@ -48,9 +48,9 @@ export function ArtistCard({ artist, priority = false }: ArtistCardProps) {
           />
         </div>
 
-        <ExpandableCardDetails open={expanded} className="text-[15px] font-bold leading-snug lg:text-[10px]">
+        <ExpandableCardDetails open={expanded} className="text-[15px] font-medium leading-snug lg:text-[10px]">
           {details.map((detail) => (
-            <p key={detail} className="mb-4 last:mb-0">
+            <p key={detail} className="mb-4 whitespace-pre-line last:mb-0">
               {detail}
             </p>
           ))}

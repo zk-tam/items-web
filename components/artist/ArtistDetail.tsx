@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { Instagram } from "lucide-react";
 import type { CatalogArtist as Artist, CatalogItem as Product } from "@/lib/catalog/types";
 import { CatalogMediaGallery } from "@/components/catalog/CatalogMediaGallery";
 import { getInstagramUrl, isInstagramUrl } from "@/lib/catalog/socials";
@@ -32,22 +31,24 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
                 />
               )}
             </div>
-            <span aria-hidden className="items-plus-marker left-[-30px] top-[62%]" />
-            <span aria-hidden className="items-plus-marker right-[-30px] top-[62%]" />
+            <span aria-hidden className="items-plus-marker left-[-26px] top-1/2 -translate-y-1/2" />
+            <span aria-hidden className="items-plus-marker right-[-26px] top-1/2 -translate-y-1/2" />
           </div>
         </div>
 
-        <div className="space-y-9 lg:pt-10">
-          <section className="space-y-6">
-            <h1 className="text-[13px] font-heavy">{artist.name}</h1>
-            <p className="max-w-[640px] text-[13px] font-heavy">{artist.role}</p>
+        <div className="space-y-9">
+          <section className="space-y-7">
+            <div className="space-y-1">
+              <h1 className="text-[20px] font-heavy">{artist.name}</h1>
+              <p className="text-[13px] font-heavy">{artist.role}</p>
+            </div>
             {artist.bio && <p className="max-w-[640px] text-[13px] font-medium">{artist.bio}</p>}
           </section>
 
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-[13px] font-heavy">
             {instagramUrl && (
               <a href={instagramUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-items-blueHover" aria-label={`${artist.name} on Instagram`}>
-                <Instagram aria-hidden className="h-5 w-5" strokeWidth={1.9} />
+                <Image src="/assets/instagram.svg" alt="" aria-hidden height={26} width={26} className="h-5 w-5" />
                 Instagram
               </a>
             )}

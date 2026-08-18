@@ -58,10 +58,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           />
         </div>
 
-        <ExpandableCardDetails open={expanded} className="text-[15px] font-bold leading-snug lg:text-[10px]">
-          {shortDescription && <p>{shortDescription}</p>}
+        <ExpandableCardDetails open={expanded} className="text-[15px] font-medium leading-snug lg:text-[10px]">
+          {shortDescription && <p className="whitespace-pre-line">{shortDescription}</p>}
           {product.preview?.map((line) => <p key={line} className="mt-4">{line}</p>)}
-          {categoryAndSize && <p className="mt-12">{categoryAndSize}</p>}
+          {categoryAndSize && <p className="mt-6">{categoryAndSize}</p>}
         </ExpandableCardDetails>
       </div>
     </article>

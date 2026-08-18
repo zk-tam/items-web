@@ -8,7 +8,7 @@ import { primaryNavigation } from "@/data/navigation";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import { AnimatedPlusMinus } from "@/components/ui/AnimatedPlusMinus";
 
-const detailNavigation = primaryNavigation.filter((item) => item.route !== "shipping");
+const detailNavigation = primaryNavigation;
 
 export function DetailPageHeader() {
   const router = useRouter();

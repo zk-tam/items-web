@@ -15,7 +15,10 @@ export function ArtistBio({ artist }: ArtistBioProps) {
     <section className="border-t border-items-blue pt-9">
       <div className="grid grid-cols-[1fr_auto] gap-6">
         <Link href={`/artists/${artist.slug}`} className="min-w-0 hover:text-items-blueHover">
-          <h2 className="text-[13px] font-heavy">{artist.name}</h2>
+          <div className="space-y-1">
+            <h2 className="text-[20px] font-heavy">{artist.name}</h2>
+            <p className="text-[13px] font-heavy">{artist.role}</p>
+          </div>
         </Link>
         {artist.image && (
           <Link href={`/artists/${artist.slug}`} className="relative h-24 w-24 overflow-hidden rounded-full bg-items-placeholder lg:h-28 lg:w-28">

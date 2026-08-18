@@ -51,9 +51,7 @@ export function UtilityIcons({ compact = false, stacked = false, className }: Ut
   return (
     <div
       className={cn(
-        "flex items-center",
-        compact && "gap-1.5 sm:gap-2",
-        !compact && "gap-3",
+        compact ? "grid grid-cols-[20px_20px_20px_48px] items-center gap-2.5 sm:grid-cols-[24px_24px_24px_56px] sm:gap-2" : "flex items-center gap-3",
         className
       )}
     >
