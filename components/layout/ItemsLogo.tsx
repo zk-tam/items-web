@@ -16,7 +16,7 @@ export function ItemsLogo({ className, imageClassName }: ItemsLogoProps) {
         width={100}
         height={100}
         priority
-        className={cn("h-[var(--items-header-logo-size)] w-[var(--items-header-logo-size)]", imageClassName)}
+        className={cn("h-auto w-[var(--items-header-logo-size)]", imageClassName)}
       />
     </Link>
   );

@@ -40,9 +40,9 @@ const config: Config = {
         ]
       },
       borderRadius: {
-        item: "20px",
-        itemLg: "28px",
-        button: "8px"
+        item: "12px",
+        itemLg: "16px",
+        button: "6px"
       },
       maxWidth: {
         items: "1280px"

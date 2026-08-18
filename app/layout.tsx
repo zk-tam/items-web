@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { AnalyticsTracker } from "@/components/analytics/AnalyticsTracker";
+import { CartProvider } from "@/components/cart/CartDrawer";
+import { SearchProvider } from "@/components/search/SearchDialog";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import "./globals.css";
 
@@ -73,7 +75,7 @@ export default function RootLayout({
         />
       </head>
       <body className={avenir.variable}>
-        <ThemeProvider><AnalyticsTracker />{children}</ThemeProvider>
+        <ThemeProvider><CartProvider><SearchProvider><AnalyticsTracker />{children}</SearchProvider></CartProvider></ThemeProvider>
       </body>
     </html>
   );

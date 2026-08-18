@@ -49,9 +49,10 @@ export function DesktopSidebar({
   }
 
   return (
-    <aside className={cn("hidden border-r border-items-blue lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "sticky top-6 h-[calc(100dvh-48px)] min-h-0 self-start")}>
-      <div className="flex h-[150px] shrink-0 items-center border-b border-items-blue px-9">
+    <aside className={cn("relative hidden lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "sticky top-6 h-[calc(100dvh-48px)] min-h-0 self-start")}>
+      <div className="relative flex h-[var(--items-header-height)] shrink-0 items-center px-9">
         <ItemsLogo />
+        <div aria-hidden className="absolute bottom-0 left-9 right-0 h-px bg-items-blue" />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-9 py-8">
@@ -106,9 +107,10 @@ export function DesktopSidebar({
         </nav>
 
         <div className="mt-auto pt-10">
-          <FooterLinks />
+          <FooterLinks hideInstagram hideShipping />
         </div>
       </div>
+      <div aria-hidden className="items-sidebar-divider absolute bottom-9 right-0 w-px bg-items-blue" />
     </aside>
   );
 }

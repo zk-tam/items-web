@@ -22,7 +22,7 @@ const sections = [
 
 export default function ShippingReturnsPage() {
   return (
-    <SiteShell activeRoute="shipping">
+    <SiteShell activeRoute="shipping" lockDesktopViewport>
       <main className="max-w-[1000px] pt-3 lg:pt-0">
         <div className="space-y-11 lg:space-y-14">
           {sections.map((section) => (

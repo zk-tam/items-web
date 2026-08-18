@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <SiteShell activeRoute="about">
+    <SiteShell activeRoute="about" lockDesktopViewport>
       <main className="max-w-[900px] pt-3 lg:pt-0">
         <section className="space-y-11 lg:space-y-14">
           <div className="space-y-5">

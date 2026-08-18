@@ -13,12 +13,13 @@ type ArtistDetailProps = {
 export function ArtistDetail({ artist, products }: ArtistDetailProps) {
   const instagramUrl = getInstagramUrl(artist.links);
   const otherLinks = artist.links.filter((link) => !isInstagramUrl(link.href));
+  const hasSingleMedia = artist.media.length === 0;
 
   return (
     <article className="space-y-14">
-      <section className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.8fr)] lg:gap-16">
+      <section className="grid gap-10 lg:grid-cols-2 lg:gap-0">
         <div className="-mx-7 overflow-hidden px-7 lg:mx-0 lg:overflow-visible lg:px-0">
-          <div className="relative mx-auto w-full max-w-[620px]">
+          <div className={`relative mx-auto w-full max-w-[620px] ${hasSingleMedia ? "lg:max-w-[calc((100vh-15.625rem)*0.8)]" : "lg:max-w-[calc((100vh-15.625rem)*0.656)]"}`}>
             <div className="relative aspect-[4/5] overflow-hidden rounded-itemLg bg-items-placeholder">
               {artist.image && (
                 <Image

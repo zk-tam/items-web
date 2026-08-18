@@ -15,7 +15,7 @@ export default async function PrivacyPage() {
   const analyticsEnabled = cookieStore.get(ANALYTICS_OPT_OUT_COOKIE)?.value !== "1";
 
   return (
-    <SiteShell>
+    <SiteShell lockDesktopViewport>
       <main className="max-w-[900px] space-y-8 pt-3 text-[13px] font-medium lg:pt-0">
         <section className="space-y-5">
           <h1 className="font-heavy">Privacy & analytics</h1>
