@@ -51,9 +51,9 @@ export function DesktopSidebar({
 
   return (
     <aside className={cn("relative hidden lg:flex lg:flex-col", viewportLocked ? "h-full min-h-0" : "sticky top-6 h-[calc(100dvh-48px)] min-h-0 self-start")}>
-      <div className="relative flex h-[var(--items-header-height)] shrink-0 items-center px-9">
+      <div className="relative flex h-[var(--items-header-height)] shrink-0 items-center px-8">
         <ItemsLogo className="self-start" imageClassName="w-[165px]" />
-        <div aria-hidden className="absolute bottom-0 left-9 right-0 h-px bg-items-blue" />
+        <div aria-hidden className="absolute bottom-0 left-8 right-0 h-px bg-items-blue" />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-8 pb-9 pt-8">

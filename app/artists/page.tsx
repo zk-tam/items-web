@@ -19,7 +19,7 @@ export default async function ArtistsPage() {
   }));
 
   return (
-    <SiteShell activeRoute="artists" artistMenuExpanded artistMenuItems={artistMenuItems} lockDesktopViewport contentClassName="items-grid-scroll-fade">
+    <SiteShell activeRoute="artists" artistMenuExpanded artistMenuItems={artistMenuItems} lockDesktopViewport contentClassName="items-grid-scroll-fade pb-20">
       <ArtistGrid artists={artists} />
     </SiteShell>
   );
