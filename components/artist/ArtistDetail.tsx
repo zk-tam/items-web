@@ -39,8 +39,8 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
         <div className="space-y-9">
           <section className="space-y-7">
             <div className="space-y-1">
-              <h1 className="text-[20px] font-heavy">{artist.name}</h1>
-              <p className="text-[13px] font-heavy">{artist.role}</p>
+              <h1 className="text-[24px] font-heavy">{artist.name}</h1>
+              <p className="text-[16px] font-heavy">{artist.role}</p>
             </div>
             {artist.bio && <p className="max-w-[640px] whitespace-pre-line text-[13px] font-medium">{artist.bio}</p>}
           </section>
