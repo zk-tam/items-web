@@ -42,7 +42,7 @@ export function ArtistDetail({ artist, products }: ArtistDetailProps) {
               <h1 className="text-[20px] font-heavy">{artist.name}</h1>
               <p className="text-[13px] font-heavy">{artist.role}</p>
             </div>
-            {artist.bio && <p className="max-w-[640px] text-[13px] font-medium">{artist.bio}</p>}
+            {artist.bio && <p className="max-w-[640px] whitespace-pre-line text-[13px] font-medium">{artist.bio}</p>}
           </section>
 
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-[13px] font-heavy">
