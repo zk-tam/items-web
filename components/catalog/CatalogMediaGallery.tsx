@@ -167,7 +167,7 @@ function CarouselMediaGallery({ media, label, showCaptions }: Pick<CatalogMediaG
         )}
       </div>
       {media.length > 1 && (
-        <div aria-label="Carousel position" className="mt-3 flex justify-center gap-1">
+        <div aria-label="Carousel position" className="mx-auto mt-3 flex w-fit items-center justify-center gap-[0.5px]">
           {media.map((entry, index) => {
             const isActive = index === activeIndex;
 
@@ -176,11 +176,11 @@ function CarouselMediaGallery({ media, label, showCaptions }: Pick<CatalogMediaG
                 key={entry.id ?? entry.src}
                 aria-current={isActive ? "true" : undefined}
                 aria-label={`Show image ${index + 1}`}
-                className="inline-flex h-5 w-5 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-items-blue"
+                className="inline-flex h-3.5 w-3.5 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-items-blue"
                 onClick={() => scrollToSlide(index + 1)}
                 type="button"
               >
-                <span aria-hidden className={`h-1.5 w-1.5 rounded-full transition-[background-color,transform] duration-200 motion-reduce:transition-none ${isActive ? "scale-100 bg-items-blue" : "scale-75 bg-items-placeholder"}`} />
+                <span aria-hidden className={`h-1 w-1 rounded-full transition-[background-color,transform] duration-200 motion-reduce:transition-none ${isActive ? "scale-100 bg-items-blue" : "scale-75 bg-items-placeholder"}`} />
               </button>
             );
           })}

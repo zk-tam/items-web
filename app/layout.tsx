@@ -33,13 +33,35 @@ const avenir = localFont({
   display: "swap"
 });
 
+const siteDescription = "Compelling physical items in all shapes and sizes, made by a growing collective of creators.";
+const previewImage = {
+  url: "/assets/preview_img.jpeg",
+  width: 1080,
+  height: 1350,
+  alt: "ITEMS preview image"
+};
+
 export const metadata: Metadata = {
   title: {
     default: "ITEMS",
     template: "%s | ITEMS"
   },
-  description: "Ideas you want, plus some. A raw artist-led catalog for collectible physical ITEMS.",
+  description: siteDescription,
   metadataBase: new URL("https://itemsyouwant.com"),
+  openGraph: {
+    title: "ITEMS",
+    description: siteDescription,
+    url: "/",
+    siteName: "ITEMS",
+    images: [previewImage],
+    type: "website"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ITEMS",
+    description: siteDescription,
+    images: [previewImage]
+  },
   icons: {
     icon: [
       {
