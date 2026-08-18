@@ -1,7 +1,7 @@
 import type { CatalogItem } from "@/lib/catalog/types";
 import { itemPrices } from "../catalog/pricing";
 
-const siteUrl = "https://itemsyouwant.com";
+const siteUrl = "https://itemsart.com";
 
 export function productJsonLd(item: CatalogItem) {
   const prices = itemPrices(item);

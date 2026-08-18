@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     template: "%s | ITEMS"
   },
   description: siteDescription,
-  metadataBase: new URL("https://itemsyouwant.com"),
+  metadataBase: new URL("https://itemsart.com"),
   openGraph: {
     title: "ITEMS",
     description: siteDescription,

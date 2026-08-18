@@ -23,7 +23,7 @@ describe("product JSON-LD", () => {
       priceCurrency: "MYR",
       availability: "https://schema.org/InStock"
     });
-    expect(structuredData.image).toEqual(["https://itemsyouwant.com/item.jpg"]);
+    expect(structuredData.image).toEqual(["https://itemsart.com/item.jpg"]);
   });
 
   it("escapes JSON-LD script content", () => {

@@ -19,7 +19,7 @@ export type AnalyticsDateRange = {
   toDate: string;
 };
 
-const ANALYTICS_URL_ORIGIN = "https://itemsyouwant.com";
+const ANALYTICS_URL_ORIGIN = "https://itemsart.com";
 const EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CRAWLER_PATTERN = /bot|crawler|spider|crawling|slurp|facebookexternalhit|preview|prerender|lighthouse|pagespeed|headless|wget|curl/i;
 const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
@@ -101,7 +101,7 @@ export function extractExternalReferrerHost(referrer: string | null, currentHost
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;
     const hostname = normalizeHostname(url.hostname);
     const currentHostname = normalizeHostname(currentHost.split(":")[0] ?? "");
-    const siteHostname = "itemsyouwant.com";
+    const siteHostname = "itemsart.com";
     const isCurrentSite = hostname === currentHostname || hostname.endsWith(`.${currentHostname}`);
     const isItemsSite = hostname === siteHostname || hostname.endsWith(`.${siteHostname}`);
     return hostname && !isCurrentSite && !isItemsSite ? hostname : null;

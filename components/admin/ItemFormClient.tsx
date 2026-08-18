@@ -89,7 +89,7 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
         <label className="grid gap-1 font-bold">Category<input name="category" defaultValue={item?.category ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       </div>
       <label className="grid gap-1 font-bold">Name<input name="name" required defaultValue={item?.name} className="border border-items-blue bg-transparent p-3" /></label>
-      <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={item?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">itemsyouwant.com/products/{item?.slug ?? "your-slug"}</span></label>
+      <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={item?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">itemsart.com/products/{item?.slug ?? "your-slug"}</span></label>
       <label className="grid gap-1 font-bold">Description<textarea name="description" required rows={5} defaultValue={item?.description} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">Short description <span className="text-xs font-normal">Shown when the item card is expanded</span><textarea name="shortDescription" rows={3} defaultValue={item?.shortDescription ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       <SeoFields
