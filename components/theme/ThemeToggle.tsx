@@ -15,7 +15,7 @@ function SwitchBase() {
   return (
     <>
       <rect
-        fill="#f1f1f2"
+        fill="var(--items-surface)"
         height="17.22"
         stroke="currentColor"
         strokeMiterlimit="10"
@@ -46,7 +46,7 @@ function CenterSwitch({ mirrored }: { mirrored: boolean }) {
       transform={mirrored ? `translate(${SWITCH_WIDTH} 0) scale(-1 1)` : undefined}
     >
       <rect
-        fill="#fff"
+        fill="var(--items-surface)"
         height="6.33"
         stroke="currentColor"
         strokeLinecap="round"
@@ -57,7 +57,7 @@ function CenterSwitch({ mirrored }: { mirrored: boolean }) {
         y="6"
       />
       <polyline
-        fill="#fff"
+        fill="var(--items-surface)"
         points="10.8 12.33 10.8 6 14.28 3.77 14.28 10.1 10.8 12.33"
         stroke="currentColor"
         strokeLinecap="round"
@@ -65,7 +65,7 @@ function CenterSwitch({ mirrored }: { mirrored: boolean }) {
         strokeWidth="0.69"
       />
       <polyline
-        fill="#fff"
+        fill="var(--items-surface)"
         points="17.77 12.33 17.77 6 14.28 3.77 14.28 10.1 17.77 12.33"
         stroke="currentColor"
         strokeLinecap="round"

@@ -27,7 +27,7 @@ export function ProductDetail({ product, artist }: ProductDetailProps) {
             <h1 className="text-[20px] font-heavy">{product.name}</h1>
             {prices.length > 0 && <p className="text-[13px] font-heavy">{prices.join(" / ")}</p>}
           </div>
-          <p className="max-w-[640px] text-[13px] font-medium">{product.description}</p>
+          <p className="max-w-[640px] whitespace-pre-line text-[13px] font-medium">{product.description}</p>
 
           <ul className="space-y-2 text-[11px] font-medium">
             {product.specs.map((spec) => (

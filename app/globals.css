@@ -19,7 +19,6 @@
   --items-header-logo-size: 150px;
   --items-detail-header-height: 130px;
   --items-detail-logo-height: 70px;
-  --items-detail-header-controls-height: calc((var(--items-detail-header-height) + var(--items-detail-logo-height)) / 2);
 
   --background: 0 0% 100%;
   --foreground: 220 100% 50%;
@@ -31,13 +30,13 @@
 [data-theme="dark"] {
   --items-blue: #0057ff;
   --items-blue-hover: #004be0;
-  --items-canvas: #e6e7e8;
-  --items-surface: #e6e7e8;
+  --items-canvas: #d0d1d2;
+  --items-surface: #d0d1d2;
   --items-dim: #d9dadb;
   --items-placeholder: #cccccc;
   --items-line-soft: rgba(0, 87, 255, 0.28);
 
-  --background: 210 4% 91%;
+  --background: 210 2% 82%;
   --foreground: 220 100% 50%;
   --border: 220 100% 50%;
   --primary: 220 100% 50%;

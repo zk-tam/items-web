@@ -35,8 +35,8 @@ export function DetailPageHeader() {
           </Link>
         ))}
       </nav>
-      <div className="absolute inset-y-0 right-9 flex flex-col justify-end">
-        <UtilityIcons stacked className="h-[var(--items-detail-header-controls-height)]" />
+      <div className="absolute right-9 top-0">
+        <UtilityIcons stacked className="h-[var(--items-detail-header-height)]" />
       </div>
       <div aria-hidden className="absolute bottom-0 left-8 right-8 h-px bg-items-blue" />
     </header>

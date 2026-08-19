@@ -35,7 +35,7 @@ export function ArtistBio({ artist }: ArtistBioProps) {
         ))}
       </div>
 
-      {artist.bio && <p className="mt-8 max-w-[680px] text-[13px] font-medium">{artist.bio}</p>}
+      {artist.bio && <p className="mt-8 max-w-[680px] whitespace-pre-line text-[13px] font-medium">{artist.bio}</p>}
     </section>
   );
 }

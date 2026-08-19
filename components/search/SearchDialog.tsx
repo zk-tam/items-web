@@ -194,7 +194,7 @@ function SearchDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
               <div className="min-w-0 self-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.08em]">{result.type}</p>
                 <p className="mt-1 truncate text-sm font-heavy sm:text-base">{result.name}</p>
-                <p className="mt-1 overflow-hidden text-xs font-medium leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] sm:text-sm">{result.description}</p>
+                <p className="mt-1 overflow-hidden whitespace-pre-line text-xs font-medium leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] sm:text-sm">{result.description}</p>
               </div>
             </Link>
           ))}
