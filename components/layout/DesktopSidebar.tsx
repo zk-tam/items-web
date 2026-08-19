@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { primaryNavigation, type ArtistMenuItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
+import { primaryNavigation, type ArtistMenuItem, type NavigationItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { ItemsLogo } from "@/components/layout/ItemsLogo";
 import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 type DesktopSidebarProps = {
   activeRoute?: PrimaryRoute;
+  navigation?: NavigationItem[];
   artistMenuItems?: ArtistMenuItem[];
   artistMenuExpanded?: boolean;
   productMenuItems?: ProductMenuItem[];
@@ -22,6 +23,7 @@ type DesktopSidebarProps = {
 
 export function DesktopSidebar({
   activeRoute,
+  navigation = primaryNavigation,
   artistMenuItems = [],
   artistMenuExpanded = false,
   productMenuItems = [],
@@ -35,7 +37,7 @@ export function DesktopSidebar({
   const isExpandedArtists = displayRoute === "artists" && (pendingRoute ? pendingRoute === "artists" : artistMenuExpanded);
   useEffect(() => {
     const routes = new Set([
-      ...primaryNavigation.map((item) => item.href),
+      ...navigation.map((item) => item.href),
       ...productMenuItems.map((item) => item.href),
       ...artistMenuItems.map((item) => item.href)
     ]);
@@ -44,9 +46,9 @@ export function DesktopSidebar({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [artistMenuItems, productMenuItems, router]);
+  }, [artistMenuItems, navigation, productMenuItems, router]);
 
-  function handleNavClick(item: (typeof primaryNavigation)[number]) {
+  function handleNavClick(item: NavigationItem) {
     if (item.route === displayRoute) return;
     if (item.route === "shop" || item.route === "artists") {
       window.sessionStorage.setItem(SIDEBAR_DISCLOSURE_ROUTE_KEY, item.route);
@@ -64,7 +66,7 @@ export function DesktopSidebar({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-9 pt-8">
         <nav aria-label="Primary navigation" className="shrink-0 space-y-4 text-[13px] font-black leading-none">
-          {primaryNavigation.map((item) => {
+          {navigation.map((item) => {
             const isActive = displayRoute === item.route;
             const isProductMenu = item.route === "shop";
             const isArtistMenu = item.route === "artists";

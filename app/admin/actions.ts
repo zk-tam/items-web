@@ -8,6 +8,7 @@ import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type I
 import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 import { CATALOG_CACHE_TAG } from "@/lib/db/items-repository";
+import { MAIN_NAVIGATION_LABEL_MAX_LENGTH, saveMainNavigationLabels, SITE_SETTINGS_CACHE_TAG } from "@/lib/site-settings/repository";
 
 function asOptionalFile(value: FormDataEntryValue | null) {
   return typeof File !== "undefined" && value instanceof File && value.size > 0 ? value : null;
@@ -69,6 +70,25 @@ function revalidateCatalog() {
   revalidatePath("/artists");
   revalidatePath("/products/[slug]", "page");
   revalidatePath("/artists/[slug]", "page");
+}
+
+function parseMainNavigationLabel(value: FormDataEntryValue | null, label: string) {
+  const text = requiredText(value, label);
+  if (text.length > MAIN_NAVIGATION_LABEL_MAX_LENGTH) {
+    throw new Error(`${label} must be ${MAIN_NAVIGATION_LABEL_MAX_LENGTH} characters or fewer.`);
+  }
+  return text;
+}
+
+export async function updateMainNavigationLabelsAction(formData: FormData) {
+  await requireAdmin();
+  await saveMainNavigationLabels({
+    shopLabel: parseMainNavigationLabel(formData.get("shopLabel"), "Shop All label"),
+    artistsLabel: parseMainNavigationLabel(formData.get("artistsLabel"), "Artists label")
+  });
+  updateTag(SITE_SETTINGS_CACHE_TAG);
+  revalidatePath("/", "layout");
+  redirect("/admin/settings?saved=1");
 }
 
 export async function loginAction(formData: FormData) {

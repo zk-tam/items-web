@@ -6,6 +6,7 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import type { ArtistMenuItem, PrimaryRoute, ProductMenuItem } from "@/data/navigation";
+import { getPrimaryNavigation } from "@/lib/site-settings/repository";
 import { cn } from "@/lib/utils";
 
 type SiteShellProps = {
@@ -21,7 +22,7 @@ type SiteShellProps = {
   contentClassName?: string;
 };
 
-export function SiteShell({
+export async function SiteShell({
   children,
   activeRoute,
   artistMenuItems,
@@ -33,19 +34,22 @@ export function SiteShell({
   theme = "light",
   contentClassName
 }: SiteShellProps) {
+  const navigation = await getPrimaryNavigation();
+
   return (
     <div className={cn("min-h-screen", lockDesktopViewport && "lg:h-screen lg:overflow-hidden", theme === "dim" && "items-dim")}>
       <div className="hidden lg:block">
         <div className={cn("items-frame max-w-[1600px]", lockDesktopViewport && "h-[calc(100vh-30px)]")}>
           {detailHeader ? (
             <section className={cn("min-w-0", lockDesktopViewport && "flex h-full min-h-0 flex-col")}>
-              <DetailPageHeader />
+              <DetailPageHeader navigation={navigation} />
               <div className={cn("p-8 pb-0", lockDesktopViewport && "min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
             </section>
           ) : (
             <div className={cn("grid grid-cols-[var(--items-sidebar-width)_minmax(0,1fr)]", lockDesktopViewport ? "h-full min-h-0" : "min-h-[calc(100vh-48px)]")}>
               <DesktopSidebar
                 activeRoute={activeRoute}
+                navigation={navigation}
                 artistMenuExpanded={artistMenuExpanded}
                 artistMenuItems={artistMenuItems}
                 productMenuExpanded={productMenuExpanded}
@@ -66,7 +70,7 @@ export function SiteShell({
 
       <div className="lg:hidden">
         <div className="items-mobile-frame">
-          <MobileHeader activeRoute={activeRoute} />
+          <MobileHeader activeRoute={activeRoute} navigation={navigation} />
           <div className={cn("px-7 py-8", contentClassName)}>{children}</div>
           <footer className="px-7 pb-8"><FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} /></footer>
         </div>

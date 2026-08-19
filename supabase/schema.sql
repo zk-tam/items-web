@@ -186,6 +186,18 @@ create table if not exists newsletter_subscribers (
   subscribed_at timestamptz not null default now()
 );
 
+create table if not exists site_settings (
+  id boolean primary key default true check (id),
+  shop_label text not null default 'Shop All' check (char_length(btrim(shop_label)) between 1 and 48),
+  artists_label text not null default 'Artists' check (char_length(btrim(artists_label)) between 1 and 48),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into site_settings (id)
+values (true)
+on conflict (id) do nothing;
+
 create index if not exists artists_catalog_idx on artists (is_published, archived_at, sort_order asc nulls last, created_at desc, name);
 create index if not exists items_catalog_idx on items (artist_id, is_published, archived_at, sort_order asc nulls last, created_at desc, name);
 create index if not exists item_media_item_idx on item_media (item_id, sort_order);
@@ -215,6 +227,7 @@ alter table admin_users enable row level security;
 alter table admin_sessions enable row level security;
 alter table analytics_page_views enable row level security;
 alter table newsletter_subscribers enable row level security;
+alter table site_settings enable row level security;
 
 create or replace function set_updated_at()
 returns trigger language plpgsql as $$
@@ -232,6 +245,8 @@ drop trigger if exists orders_set_updated_at on orders;
 create trigger orders_set_updated_at before update on orders for each row execute function set_updated_at();
 drop trigger if exists admin_users_set_updated_at on admin_users;
 create trigger admin_users_set_updated_at before update on admin_users for each row execute function set_updated_at();
+drop trigger if exists site_settings_set_updated_at on site_settings;
+create trigger site_settings_set_updated_at before update on site_settings for each row execute function set_updated_at();
 
 -- Supabase Storage is intentionally the only Supabase-specific resource.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

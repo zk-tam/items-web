@@ -16,6 +16,7 @@ export function AdminHeader({ admin }: { admin: AdminUser }) {
           <Link href="/admin/orders">Orders</Link>
           <Link href="/admin/newsletter">Newsletter</Link>
           <Link href="/admin/analytics">Analytics</Link>
+          <Link href="/admin/settings">Settings</Link>
           <Link href="/">View site</Link>
           <form action={logoutAction}><button className="border border-items-blue px-3 py-1.5">Log out</button></form>
         </nav>

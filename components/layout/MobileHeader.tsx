@@ -3,29 +3,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { primaryNavigation, type PrimaryRoute } from "@/data/navigation";
+import { primaryNavigation, type NavigationItem, type PrimaryRoute } from "@/data/navigation";
 import { ItemsLogo } from "@/components/layout/ItemsLogo";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import { AnimatedPlusMinus } from "@/components/ui/AnimatedPlusMinus";
 
 type MobileHeaderProps = {
   activeRoute?: PrimaryRoute;
+  navigation?: NavigationItem[];
 };
 
-export function MobileHeader({ activeRoute }: MobileHeaderProps) {
+export function MobileHeader({ activeRoute, navigation = primaryNavigation }: MobileHeaderProps) {
   const router = useRouter();
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
   const displayRoute = pendingRoute ?? activeRoute;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      primaryNavigation.forEach((item) => router.prefetch(item.href));
+      navigation.forEach((item) => router.prefetch(item.href));
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [router]);
+  }, [navigation, router]);
 
-  function handleNavClick(item: (typeof primaryNavigation)[number]) {
+  function handleNavClick(item: NavigationItem) {
     if (item.route === displayRoute) return;
     setPendingRoute(item.route);
   }
@@ -41,7 +42,7 @@ export function MobileHeader({ activeRoute }: MobileHeaderProps) {
               aria-label="Primary navigation"
               className="mt-[66px] w-[156px] space-y-[14px] text-right text-[13px] font-black leading-none max-[375px]:space-y-3 max-[375px]:text-[12px] max-[359px]:space-y-1.5 max-[359px]:text-[10px] sm:mt-[70px] sm:w-[168px] sm:space-y-[15px] sm:text-[14px]"
             >
-              {primaryNavigation.map((item) => (
+              {navigation.map((item) => (
                 <Link
                   key={item.href}
                   className="flex items-start justify-end gap-2 hover:text-items-blueHover"
