@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 import { queryRow, queryRows, withTransaction } from "@/lib/db/postgres";
 import { inventoryTransition } from "@/lib/admin/order-state";
 import { MAX_ITEM_MEDIA, type ItemMediaKind, type ItemMediaMimeType, type ItemMediaOrderEntry } from "@/lib/admin/item-media";
+import { getStoragePublicUrl } from "@/lib/storage/supabase-storage";
 
 export type AdminArtist = {
   id: string;
@@ -56,6 +57,7 @@ export type PaymentStatus = "unpaid" | "paid" | "refunded";
 export type AdminOrder = {
   id: string;
   orderNumber: string;
+  publicToken: string;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -75,6 +77,8 @@ export type OrderLine = {
   itemId: string;
   itemName: string;
   artistName: string;
+  thumbnailPath: string | null;
+  thumbnailUrl?: string | null;
   quantity: number;
   unitPriceCents: number;
 };
@@ -94,8 +98,11 @@ export type DocumentSnapshot = {
   seller: { name: string; address?: string; email?: string; phone?: string; taxId?: string };
   customer: { name: string; email?: string; phone?: string; shippingAddress?: string };
   orderNumber: string;
+  orderStatus?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  createdAt?: string;
   currency: string;
-  lines: Array<{ itemName: string; artistName: string; quantity: number; unitPriceCents: number }>;
+  lines: Array<{ itemName: string; artistName: string; thumbnailPath?: string; quantity: number; unitPriceCents: number }>;
   totalCents: number;
 };
 
@@ -328,25 +335,53 @@ export async function archiveItem(id: string) {
   await queryRow(`update items set archived_at = now(), is_published = false where id = $1 returning id`, [id]);
 }
 
-export async function listAdminOrders() {
+export type AdminOrderSort = "newest" | "oldest" | "updated";
+
+export type AdminOrderListFilters = {
+  id?: string;
+  status?: OrderStatus;
+  sort?: AdminOrderSort;
+};
+
+const adminOrderSortSql: Record<AdminOrderSort, string> = {
+  newest: "order_row.created_at desc",
+  oldest: "order_row.created_at asc",
+  updated: "order_row.updated_at desc"
+};
+
+export async function listAdminOrders(filters: AdminOrderListFilters = {}) {
+  const where: string[] = [];
+  const values: string[] = [];
+  const id = filters.id?.trim().slice(0, 100);
+  if (id) {
+    values.push(`%${id}%`);
+    where.push(`(order_row.id::text ilike $${values.length} or order_row.order_number ilike $${values.length})`);
+  }
+  if (filters.status) {
+    values.push(filters.status);
+    where.push(`order_row.status = $${values.length}::order_status`);
+  }
+  const orderBy = adminOrderSortSql[filters.sort ?? "newest"];
   return (await queryRows<AdminOrder>(
-    `select id, order_number as "orderNumber", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
+    `select id, order_number as "orderNumber", public_token as "publicToken", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
             shipping_address as "shippingAddress", status, payment_status as "paymentStatus", paid_at as "paidAt", shipment_url as "shipmentUrl", notes,
             stock_committed as "stockCommitted", created_at as "createdAt", updated_at as "updatedAt"
-     from orders order_row order by order_row.created_at desc`
+     from orders order_row${where.length > 0 ? ` where ${where.join(" and ")}` : ""}
+     order by ${orderBy}`,
+    values
   )) ?? [];
 }
 
 export async function getAdminOrder(id: string) {
   const order = await queryRow<AdminOrder>(
-    `select id, order_number as "orderNumber", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
+    `select id, order_number as "orderNumber", public_token as "publicToken", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
             shipping_address as "shippingAddress", status, payment_status as "paymentStatus", paid_at as "paidAt", shipment_url as "shipmentUrl", notes,
             stock_committed as "stockCommitted", created_at as "createdAt", updated_at as "updatedAt"
      from orders where id = $1`, [id]
   );
   if (!order) return null;
   const lines = (await queryRows<OrderLine>(
-    `select id, item_id as "itemId", item_name as "itemName", artist_name as "artistName", quantity, unit_price_cents as "unitPriceCents"
+    `select id, item_id as "itemId", item_name as "itemName", artist_name as "artistName", thumbnail_path as "thumbnailPath", quantity, unit_price_cents as "unitPriceCents"
      from order_lines where order_id = $1 order by created_at`, [id]
   )) ?? [];
   const documents = (await queryRows<OrderDocument>(
@@ -356,14 +391,49 @@ export async function getAdminOrder(id: string) {
   return { order, lines, documents };
 }
 
+function isPublicOrderToken(token: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token);
+}
+
+/** Returns only the order data exposed by an unguessable customer share URL. */
+export async function getPublicOrder(token: string) {
+  if (!isPublicOrderToken(token)) return null;
+  const order = await queryRow<AdminOrder>(
+    `select id, order_number as "orderNumber", public_token as "publicToken", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
+            shipping_address as "shippingAddress", status, payment_status as "paymentStatus", paid_at as "paidAt", shipment_url as "shipmentUrl", notes,
+            stock_committed as "stockCommitted", created_at as "createdAt", updated_at as "updatedAt"
+     from orders where public_token = $1`,
+    [token]
+  );
+  if (!order) return null;
+  const lines = (await queryRows<OrderLine>(
+    `select id, item_id as "itemId", item_name as "itemName", artist_name as "artistName", thumbnail_path as "thumbnailPath", quantity, unit_price_cents as "unitPriceCents"
+     from order_lines where order_id = $1 order by created_at`,
+    [order.id]
+  )) ?? [];
+  return {
+    order,
+    lines: lines.map((line) => ({
+      ...line,
+      thumbnailUrl: line.thumbnailPath ? getStoragePublicUrl(line.thumbnailPath) : null
+    }))
+  };
+}
+
+export async function getOrderIdByPublicToken(token: string) {
+  if (!isPublicOrderToken(token)) return null;
+  return queryRow<{ id: string; status: OrderStatus }>(`select id, status from orders where public_token = $1`, [token]);
+}
+
 export async function createOrder(input: { customerName: string; customerEmail: string | null; customerPhone: string | null; shippingAddress: string | null; notes: string | null; lines: Array<{ itemId: string; quantity: number }> }) {
   if (input.lines.length === 0) throw new Error("An order needs at least one item.");
   return withTransaction(async (client) => {
     const quantities = new Map<string, number>();
     for (const line of input.lines) quantities.set(line.itemId, (quantities.get(line.itemId) ?? 0) + line.quantity);
     const itemIds = [...quantities.keys()];
-    const items = await client.query<{ id: string; name: string; artistName: string; priceCents: number }>(
-      `select item.id, item.name, artist.name as "artistName", item.myr_price_cents as "priceCents"
+    const items = await client.query<{ id: string; name: string; artistName: string; priceCents: number; thumbnailPath: string | null }>(
+      `select item.id, item.name, artist.name as "artistName", item.myr_price_cents as "priceCents",
+              (select media.storage_path from item_media media where media.item_id = item.id and media.media_type = 'image' order by media.sort_order asc limit 1) as "thumbnailPath"
        from items item join artists artist on artist.id = item.artist_id
        where item.id = any($1::uuid[]) and item.archived_at is null and item.myr_price_cents is not null
        for update of item`,
@@ -379,9 +449,9 @@ export async function createOrder(input: { customerName: string; customerEmail: 
     if (!orderId) throw new Error("Order could not be created.");
     for (const item of items.rows) {
       await client.query(
-        `insert into order_lines (order_id, item_id, item_name, artist_name, quantity, unit_price_cents)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [orderId, item.id, item.name, item.artistName, quantities.get(item.id), item.priceCents]
+        `insert into order_lines (order_id, item_id, item_name, artist_name, thumbnail_path, quantity, unit_price_cents)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [orderId, item.id, item.name, item.artistName, item.thumbnailPath, quantities.get(item.id), item.priceCents]
       );
     }
     return orderId;
@@ -411,7 +481,7 @@ async function adjustStockForOrder(client: PoolClient, orderId: string, directio
 export async function updateOrder(id: string, input: { customerName: string; customerEmail: string | null; customerPhone: string | null; shippingAddress: string | null; status: OrderStatus; paymentStatus: PaymentStatus; shipmentUrl: string | null; notes: string | null }) {
   return withTransaction(async (client) => {
     const result = await client.query<AdminOrder>(
-      `select id, order_number as "orderNumber", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
+      `select id, order_number as "orderNumber", public_token as "publicToken", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
               shipping_address as "shippingAddress", status, payment_status as "paymentStatus", paid_at as "paidAt", shipment_url as "shipmentUrl", notes,
               stock_committed as "stockCommitted", created_at as "createdAt", updated_at as "updatedAt"
        from orders where id = $1 for update`, [id]
@@ -463,7 +533,7 @@ export async function getOrCreateOrderDocument(orderId: string, kind: "invoice" 
     if (existing.rows[0]) return existing.rows[0];
 
     const orderResult = await client.query<AdminOrder>(
-      `select id, order_number as "orderNumber", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
+      `select id, order_number as "orderNumber", public_token as "publicToken", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
               shipping_address as "shippingAddress", status, payment_status as "paymentStatus", paid_at as "paidAt", shipment_url as "shipmentUrl", notes,
               stock_committed as "stockCommitted", created_at as "createdAt", updated_at as "updatedAt"
        from orders where id = $1 for update`, [orderId]
@@ -472,7 +542,7 @@ export async function getOrCreateOrderDocument(orderId: string, kind: "invoice" 
     if (!order || order.status === "cancelled") throw new Error("Documents cannot be generated for this order.");
     if (kind === "receipt" && order.paymentStatus !== "paid") throw new Error("A receipt can only be generated after payment.");
     const lines = await client.query<OrderLine>(
-      `select id, item_id as "itemId", item_name as "itemName", artist_name as "artistName", quantity, unit_price_cents as "unitPriceCents"
+      `select id, item_id as "itemId", item_name as "itemName", artist_name as "artistName", thumbnail_path as "thumbnailPath", quantity, unit_price_cents as "unitPriceCents"
        from order_lines where order_id = $1 order by created_at`, [orderId]
     );
     const sequence = await client.query<{ value: string }>(`select nextval($1::regclass)::text as value`, [kind === "invoice" ? "invoice_number_seq" : "receipt_number_seq"]);
@@ -489,8 +559,11 @@ export async function getOrCreateOrderDocument(orderId: string, kind: "invoice" 
         shippingAddress: order.shippingAddress ?? undefined
       },
       orderNumber: order.orderNumber,
+      orderStatus: order.status,
+      paymentStatus: order.paymentStatus,
+      createdAt: order.createdAt.toISOString(),
       currency: "MYR",
-      lines: lines.rows.map((line) => ({ itemName: line.itemName, artistName: line.artistName, quantity: line.quantity, unitPriceCents: line.unitPriceCents })),
+      lines: lines.rows.map((line) => ({ itemName: line.itemName, artistName: line.artistName, thumbnailPath: line.thumbnailPath ?? undefined, quantity: line.quantity, unitPriceCents: line.unitPriceCents })),
       totalCents: lines.rows.reduce((total, line) => total + line.quantity * line.unitPriceCents, 0)
     };
     const inserted = await client.query<OrderDocument>(

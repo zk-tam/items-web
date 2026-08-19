@@ -248,18 +248,24 @@ export async function createOrderAction(formData: FormData) {
   redirect(`/admin/orders/${id}`);
 }
 
-export async function updateOrderAction(id: string, formData: FormData) {
+export type OrderActionState = { error?: string; errorId?: number };
+
+export async function updateOrderAction(id: string, _previousState: OrderActionState, formData: FormData): Promise<OrderActionState> {
   await requireAdmin();
-  await updateOrder(id, {
-    customerName: requiredText(formData.get("customerName"), "Customer name"),
-    customerEmail: optionalText(formData.get("customerEmail")),
-    customerPhone: optionalText(formData.get("customerPhone")),
-    shippingAddress: optionalText(formData.get("shippingAddress")),
-    status: parseOrderStatus(formData.get("status")),
-    paymentStatus: parsePaymentStatus(formData.get("paymentStatus")),
-    shipmentUrl: parseOptionalUrl(formData.get("shipmentUrl"), "Shipment URL"),
-    notes: optionalText(formData.get("notes"))
-  });
+  try {
+    await updateOrder(id, {
+      customerName: requiredText(formData.get("customerName"), "Customer name"),
+      customerEmail: optionalText(formData.get("customerEmail")),
+      customerPhone: optionalText(formData.get("customerPhone")),
+      shippingAddress: optionalText(formData.get("shippingAddress")),
+      status: parseOrderStatus(formData.get("status")),
+      paymentStatus: parsePaymentStatus(formData.get("paymentStatus")),
+      shipmentUrl: parseOptionalUrl(formData.get("shipmentUrl"), "Shipment URL"),
+      notes: optionalText(formData.get("notes"))
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "The order could not be saved. Please try again.", errorId: Date.now() };
+  }
   redirect(`/admin/orders/${id}`);
 }
 

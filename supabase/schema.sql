@@ -108,6 +108,7 @@ create sequence if not exists order_number_seq start with 1000;
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
   order_number text not null unique default ('ORD-' || lpad(nextval('order_number_seq')::text, 6, '0')),
+  public_token uuid not null default gen_random_uuid(),
   customer_name text not null,
   customer_email text,
   customer_phone text,
@@ -129,6 +130,7 @@ create table if not exists order_lines (
   item_id uuid not null references items(id) on delete restrict,
   item_name text not null,
   artist_name text not null,
+  thumbnail_path text,
   quantity integer not null check (quantity > 0),
   unit_price_cents integer not null check (unit_price_cents >= 0),
   created_at timestamptz not null default now()
@@ -190,6 +192,7 @@ create index if not exists item_media_item_idx on item_media (item_id, sort_orde
 create index if not exists artist_media_artist_idx on artist_media (artist_id, sort_order);
 create index if not exists artist_links_artist_idx on artist_links (artist_id, sort_order);
 create index if not exists orders_admin_idx on orders (created_at desc);
+create unique index if not exists orders_public_token_idx on orders (public_token);
 create index if not exists order_lines_order_idx on order_lines (order_id);
 create index if not exists admin_sessions_active_idx on admin_sessions (token_hash, expires_at) where revoked_at is null;
 create index if not exists analytics_page_views_occurred_at_idx on analytics_page_views (occurred_at desc);

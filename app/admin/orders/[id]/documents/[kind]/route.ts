@@ -17,7 +17,7 @@ export async function GET(_: Request, { params }: DocumentRouteProps) {
 
   try {
     const document = await getOrCreateOrderDocument(id, kind);
-    const pdf = createOrderPdf(document.snapshot);
+    const pdf = await createOrderPdf(document.snapshot);
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
