@@ -21,10 +21,10 @@ describe("analytics event handling", () => {
   });
 
   it("keeps only an external referral hostname", () => {
-    expect(extractExternalReferrerHost("https://WWW.Instagram.com/items.art/?x=1", "itemsart.com")).toBe("www.instagram.com");
-    expect(extractExternalReferrerHost("https://itemsart.com/products/thunder-vase", "itemsart.com")).toBeNull();
-    expect(extractExternalReferrerHost("https://www.itemsart.com/products/thunder-vase", "itemsart.com")).toBeNull();
-    expect(extractExternalReferrerHost("not a URL", "itemsart.com")).toBeNull();
+    expect(extractExternalReferrerHost("https://WWW.Instagram.com/items.art/?x=1", "catalog.example")).toBe("www.instagram.com");
+    expect(extractExternalReferrerHost("https://catalog.example/products/thunder-vase", "catalog.example")).toBeNull();
+    expect(extractExternalReferrerHost("https://www.catalog.example/products/thunder-vase", "catalog.example")).toBeNull();
+    expect(extractExternalReferrerHost("not a URL", "catalog.example")).toBeNull();
   });
 
   it("filters known crawlers and reports default dates in Malaysia time", () => {

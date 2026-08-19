@@ -236,15 +236,31 @@ select {
   .items-sidebar-disclosure {
     display: grid;
     grid-template-rows: 0fr;
+    min-height: 0;
     margin-top: 0;
     overflow: hidden;
-    transition: grid-template-rows 420ms cubic-bezier(0.16, 1, 0.3, 1), margin-top 420ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: grid-template-rows 480ms cubic-bezier(0.16, 1, 0.3, 1), margin-top 480ms cubic-bezier(0.16, 1, 0.3, 1);
     will-change: grid-template-rows, margin-top;
+  }
+
+  .items-sidebar-disclosure > div > div {
+    max-block-size: min(30dvh, 17rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.25rem;
+    opacity: 0;
+    transform: translateY(-0.25rem);
+    transition: opacity 220ms ease-out, transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .items-sidebar-disclosure-open {
     grid-template-rows: 1fr;
-    margin-top: 1rem;
+    margin-top: 0.8rem;
+  }
+
+  .items-sidebar-disclosure-open > div > div {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .items-cart-backdrop {
@@ -284,4 +300,5 @@ select {
   .items-sidebar-disclosure {
     transition: none;
   }
+
 }

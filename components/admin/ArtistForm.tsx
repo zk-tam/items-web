@@ -7,6 +7,7 @@ import { ItemMediaUploader, type ItemMediaUploaderHandle } from "@/components/ad
 import { SeoFields } from "@/components/admin/SeoFields";
 import type { ItemMediaKind } from "@/lib/admin/item-media";
 import type { AdminArtist } from "@/lib/admin/repository";
+import { siteDisplayHost } from "@/lib/site-url";
 
 type ArtistFormProps = {
   artist?: AdminArtist;
@@ -124,7 +125,7 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
       <input type="hidden" name="existingProfileImagePath" value={retainExistingImage ? existingProfileImagePath : ""} />
       <input type="hidden" name="previousProfileImagePath" value={existingProfileImagePath} />
       <label className="grid gap-1 font-bold">Name<input name="name" required value={artistName} onChange={(event) => setArtistName(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3" /></label>
-      <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={artist?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">itemsart.com/artists/{artist?.slug ?? "your-slug"}</span></label>
+      <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={artist?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">{siteDisplayHost}/artists/{artist?.slug ?? "your-slug"}</span></label>
       <label className="grid gap-1 font-bold">Role / subtitle<input name="role" defaultValue={value(artist?.role)} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">Description<textarea name="description" rows={5} value={artistDescription} onChange={(event) => setArtistDescription(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3" /></label>
       <div className="grid gap-5 md:grid-cols-2">

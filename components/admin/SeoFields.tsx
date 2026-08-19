@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SEO_DESCRIPTION_MAX_LENGTH, SEO_TITLE_MAX_LENGTH } from "@/lib/seo/constants";
+import { siteDisplayHost } from "@/lib/site-url";
 
 type SeoFieldsProps = {
   seoTitle?: string | null;
@@ -37,7 +38,7 @@ export function SeoFields({ seoTitle, seoDescription, urlPath, fallbackTitle, fa
         <h3 className="text-sm font-black uppercase tracking-wide">URL preview</h3>
         <div className="grid gap-1 border-l-2 border-items-blue pl-4">
           <p className="truncate text-lg font-bold text-blue-700">{displayTitle} | ITEMS</p>
-          <p className="truncate text-sm text-emerald-700">itemsart.com{urlPath}</p>
+          <p className="truncate text-sm text-emerald-700">{siteDisplayHost}{urlPath}</p>
           <p className="line-clamp-2 text-sm leading-relaxed">{displayDescription}</p>
         </div>
       </section>

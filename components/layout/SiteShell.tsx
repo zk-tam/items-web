@@ -55,7 +55,7 @@ export function SiteShell({
               <section className={cn("min-w-0", lockDesktopViewport && "flex min-h-0 flex-col")}>
                 <header className="relative flex h-[var(--items-header-height)] shrink-0 items-center justify-end px-9">
                   <UtilityIcons stacked className="h-[var(--items-header-logo-size)]" />
-                  <div aria-hidden className="absolute bottom-0 left-0 right-9 h-px bg-items-blue" />
+                  <div aria-hidden className="absolute bottom-0 left-0 right-8 h-px bg-items-blue" />
                 </header>
                 <div className={cn("p-8", lockDesktopViewport && "min-h-0 flex-1 overflow-y-auto overscroll-contain", contentClassName)}>{children}</div>
               </section>

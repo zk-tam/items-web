@@ -7,6 +7,7 @@ import { primaryNavigation, type ArtistMenuItem, type PrimaryRoute, type Product
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { ItemsLogo } from "@/components/layout/ItemsLogo";
 import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
+import { SidebarDisclosure, SIDEBAR_DISCLOSURE_ROUTE_KEY } from "@/components/layout/SidebarDisclosure";
 import { AnimatedPlusMinus } from "@/components/ui/AnimatedPlusMinus";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,8 @@ export function DesktopSidebar({
   const router = useRouter();
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
   const displayRoute = pendingRoute ?? activeRoute;
-
+  const isExpandedProducts = displayRoute === "shop" && (pendingRoute ? pendingRoute === "shop" : productMenuExpanded);
+  const isExpandedArtists = displayRoute === "artists" && (pendingRoute ? pendingRoute === "artists" : artistMenuExpanded);
   useEffect(() => {
     const routes = new Set([
       ...primaryNavigation.map((item) => item.href),
@@ -46,6 +48,10 @@ export function DesktopSidebar({
 
   function handleNavClick(item: (typeof primaryNavigation)[number]) {
     if (item.route === displayRoute) return;
+    if (item.route === "shop" || item.route === "artists") {
+      window.sessionStorage.setItem(SIDEBAR_DISCLOSURE_ROUTE_KEY, item.route);
+      window.setTimeout(() => window.sessionStorage.removeItem(SIDEBAR_DISCLOSURE_ROUTE_KEY), 1000);
+    }
     setPendingRoute(item.route);
   }
 
@@ -56,14 +62,14 @@ export function DesktopSidebar({
         <div aria-hidden className="absolute bottom-0 left-8 right-0 h-px bg-items-blue" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-8 pb-9 pt-8">
-        <nav aria-label="Primary navigation" className="space-y-4 text-[13px] font-black leading-none">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-9 pt-8">
+        <nav aria-label="Primary navigation" className="shrink-0 space-y-4 text-[13px] font-black leading-none">
           {primaryNavigation.map((item) => {
             const isActive = displayRoute === item.route;
-            const isExpandedProducts = item.route === "shop" && (pendingRoute ? pendingRoute === "shop" : productMenuExpanded);
-            const isExpandedArtists = item.route === "artists" && (pendingRoute ? pendingRoute === "artists" : artistMenuExpanded);
-            const menuItems = item.route === "shop" ? productMenuItems : item.route === "artists" ? artistMenuItems : [];
-            const isExpanded = isExpandedProducts || isExpandedArtists;
+            const isProductMenu = item.route === "shop";
+            const isArtistMenu = item.route === "artists";
+            const menuItems = isProductMenu ? productMenuItems : isArtistMenu ? artistMenuItems : [];
+            const isExpanded = isProductMenu ? isExpandedProducts : isArtistMenu && isExpandedArtists;
 
             return (
               <div key={item.href}>
@@ -76,38 +82,23 @@ export function DesktopSidebar({
                   <span>{item.label}</span>
                   <AnimatedPlusMinus open={isActive || isExpanded} />
                 </Link>
-
-                {(item.route === "shop" || item.route === "artists") && (
-                  <div
-                    className={cn(
-                      "items-sidebar-disclosure",
-                      isExpanded && "items-sidebar-disclosure-open"
-                    )}
-                  >
-                    <div className="min-h-0 overflow-hidden">
-                      <div
-                        aria-hidden={!isExpanded}
-                        className={cn(
-                          "space-y-[10px] pl-7 text-[11px] font-bold leading-none transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
-                          isExpanded ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
-                        )}
-                        inert={!isExpanded}
-                      >
-                        {menuItems.map((menuItem) => (
-                          <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
-                            {menuItem.name}
-                          </Link>
-                        ))}
-                      </div>
+                {(isProductMenu || isArtistMenu) && (
+                  <SidebarDisclosure route={item.route} open={isExpanded}>
+                    <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
+                      {menuItems.map((menuItem) => (
+                        <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
+                          {menuItem.name}
+                        </Link>
+                      ))}
                     </div>
-                  </div>
+                  </SidebarDisclosure>
                 )}
               </div>
             );
           })}
         </nav>
 
-        <div className="mt-auto pt-10">
+        <div className="mt-auto shrink-0 pt-8">
           <FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} />
         </div>
       </div>

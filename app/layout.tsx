@@ -4,6 +4,7 @@ import { AnalyticsTracker } from "@/components/analytics/AnalyticsTracker";
 import { CartProvider } from "@/components/cart/CartDrawer";
 import { SearchProvider } from "@/components/search/SearchDialog";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const avenir = localFont({
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
     template: "%s | ITEMS"
   },
   description: siteDescription,
-  metadataBase: new URL("https://itemsart.com"),
+  metadataBase: new URL(siteUrl),
   openGraph: {
     title: "ITEMS",
     description: siteDescription,
