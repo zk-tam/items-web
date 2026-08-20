@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { primaryNavigation, type ArtistMenuItem, type NavigationItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
@@ -57,19 +57,15 @@ export function DesktopSidebar({
     return () => window.clearTimeout(timer);
   }, [artistMenuItems, navigation, productMenuItems, router]);
 
-  function handleNavClick(event: MouseEvent<HTMLAnchorElement>, item: NavigationItem) {
-    if (isDisclosureRoute(item.route) && item.route === displayRoute) {
-      const clickedRoute: DisclosureRoute = item.route;
-      event.preventDefault();
-      setDisclosureRoute((current) => {
-        const currentlyOpen = current === undefined ? serverDisclosureRoute : current;
-        return currentlyOpen === clickedRoute ? null : clickedRoute;
-      });
-      return;
-    }
-
+  function handleNavClick(item: NavigationItem) {
     setPendingRoute(item.route);
-    setDisclosureRoute(isDisclosureRoute(item.route) ? item.route : null);
+  }
+
+  function toggleDisclosure(route: DisclosureRoute) {
+    setDisclosureRoute((current) => {
+      const currentlyOpen = current === undefined ? serverDisclosureRoute : current;
+      return currentlyOpen === route ? null : route;
+    });
   }
 
   return (
@@ -83,24 +79,36 @@ export function DesktopSidebar({
         <nav aria-label="Primary navigation" className="shrink-0 space-y-4 text-[13px] font-black leading-none">
           {navigation.map((item) => {
             const isActive = displayRoute === item.route;
-            const isProductMenu = item.route === "shop";
-            const isArtistMenu = item.route === "artists";
-            const menuItems = isProductMenu ? productMenuItems : isArtistMenu ? artistMenuItems : [];
-            const isExpanded = isProductMenu ? isExpandedProducts : isArtistMenu && isExpandedArtists;
+            const disclosureRoute = isDisclosureRoute(item.route) ? item.route : null;
+            const isDisclosure = disclosureRoute !== null;
+            const menuItems = item.route === "shop" ? productMenuItems : item.route === "artists" ? artistMenuItems : [];
+            const isExpanded = item.route === "shop" ? isExpandedProducts : item.route === "artists" && isExpandedArtists;
 
             return (
               <div key={item.href}>
-                <Link
-                  className={cn("flex items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
-                  href={item.href}
-                  onClick={(event) => handleNavClick(event, item)}
-                  prefetch
-                >
-                  <span>{item.label}</span>
-                  <AnimatedPlusMinus open={isProductMenu || isArtistMenu ? isExpanded : isActive} />
-                </Link>
-                {(isProductMenu || isArtistMenu) && (
-                  <SidebarDisclosure open={isExpanded}>
+                <div className={cn("flex items-center justify-between", isActive && "text-items-blue")}>
+                  <Link className="hover:text-items-blueHover" href={item.href} onClick={() => handleNavClick(item)} prefetch>
+                    {item.label}
+                  </Link>
+                  {isDisclosure ? (
+                    <button
+                      aria-controls={`${item.route}-sidebar-disclosure`}
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Collapse" : "Expand"} ${item.label}`}
+                      className="-m-2 p-2 hover:text-items-blueHover"
+                      onClick={() => {
+                        if (disclosureRoute) toggleDisclosure(disclosureRoute);
+                      }}
+                      type="button"
+                    >
+                      <AnimatedPlusMinus open={isExpanded} />
+                    </button>
+                  ) : (
+                    <AnimatedPlusMinus open={isActive} />
+                  )}
+                </div>
+                {isDisclosure && (
+                  <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} open={isExpanded}>
                     <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
                       {menuItems.map((menuItem) => (
                         <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
