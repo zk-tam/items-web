@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { primaryNavigation, type ArtistMenuItem, type NavigationItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { ItemsLogo } from "@/components/layout/ItemsLogo";
 import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
-import { SidebarDisclosure, SIDEBAR_DISCLOSURE_ROUTE_KEY } from "@/components/layout/SidebarDisclosure";
+import { SidebarDisclosure } from "@/components/layout/SidebarDisclosure";
 import { AnimatedPlusMinus } from "@/components/ui/AnimatedPlusMinus";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,12 @@ type DesktopSidebarProps = {
   viewportLocked?: boolean;
 };
 
+type DisclosureRoute = "shop" | "artists";
+
+function isDisclosureRoute(route: PrimaryRoute): route is DisclosureRoute {
+  return route === "shop" || route === "artists";
+}
+
 export function DesktopSidebar({
   activeRoute,
   navigation = primaryNavigation,
@@ -32,9 +38,12 @@ export function DesktopSidebar({
 }: DesktopSidebarProps) {
   const router = useRouter();
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
+  const [disclosureRoute, setDisclosureRoute] = useState<DisclosureRoute | null | undefined>(undefined);
   const displayRoute = pendingRoute ?? activeRoute;
-  const isExpandedProducts = displayRoute === "shop" && (pendingRoute ? pendingRoute === "shop" : productMenuExpanded);
-  const isExpandedArtists = displayRoute === "artists" && (pendingRoute ? pendingRoute === "artists" : artistMenuExpanded);
+  const serverDisclosureRoute: DisclosureRoute | null = productMenuExpanded ? "shop" : artistMenuExpanded ? "artists" : null;
+  const expandedRoute = disclosureRoute === undefined ? serverDisclosureRoute : disclosureRoute;
+  const isExpandedProducts = expandedRoute === "shop";
+  const isExpandedArtists = expandedRoute === "artists";
   useEffect(() => {
     const routes = new Set([
       ...navigation.map((item) => item.href),
@@ -48,13 +57,19 @@ export function DesktopSidebar({
     return () => window.clearTimeout(timer);
   }, [artistMenuItems, navigation, productMenuItems, router]);
 
-  function handleNavClick(item: NavigationItem) {
-    if (item.route === displayRoute) return;
-    if (item.route === "shop" || item.route === "artists") {
-      window.sessionStorage.setItem(SIDEBAR_DISCLOSURE_ROUTE_KEY, item.route);
-      window.setTimeout(() => window.sessionStorage.removeItem(SIDEBAR_DISCLOSURE_ROUTE_KEY), 1000);
+  function handleNavClick(event: MouseEvent<HTMLAnchorElement>, item: NavigationItem) {
+    if (isDisclosureRoute(item.route) && item.route === displayRoute) {
+      const clickedRoute: DisclosureRoute = item.route;
+      event.preventDefault();
+      setDisclosureRoute((current) => {
+        const currentlyOpen = current === undefined ? serverDisclosureRoute : current;
+        return currentlyOpen === clickedRoute ? null : clickedRoute;
+      });
+      return;
     }
+
     setPendingRoute(item.route);
+    setDisclosureRoute(isDisclosureRoute(item.route) ? item.route : null);
   }
 
   return (
@@ -78,14 +93,14 @@ export function DesktopSidebar({
                 <Link
                   className={cn("flex items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
                   href={item.href}
-                  onClick={() => handleNavClick(item)}
+                  onClick={(event) => handleNavClick(event, item)}
                   prefetch
                 >
                   <span>{item.label}</span>
-                  <AnimatedPlusMinus open={isActive || isExpanded} />
+                  <AnimatedPlusMinus open={isProductMenu || isArtistMenu ? isExpanded : isActive} />
                 </Link>
                 {(isProductMenu || isArtistMenu) && (
-                  <SidebarDisclosure route={item.route} open={isExpanded}>
+                  <SidebarDisclosure open={isExpanded}>
                     <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
                       {menuItems.map((menuItem) => (
                         <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
