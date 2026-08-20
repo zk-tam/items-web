@@ -6,6 +6,7 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import type { ArtistMenuItem, PrimaryRoute, ProductMenuItem } from "@/data/navigation";
+import { listArtists, listProducts } from "@/lib/db/items-repository";
 import { getPrimaryNavigation } from "@/lib/site-settings/repository";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,18 @@ export async function SiteShell({
   theme = "light",
   contentClassName
 }: SiteShellProps) {
-  const navigation = await getPrimaryNavigation();
+  const [navigation, catalogMenus] = await Promise.all([
+    getPrimaryNavigation(),
+    detailHeader ? Promise.resolve(null) : Promise.all([listArtists(), listProducts()])
+  ]);
+  const resolvedArtistMenuItems = artistMenuItems ?? catalogMenus?.[0].map((artist) => ({
+    name: artist.name,
+    href: `/artists/${artist.slug}`
+  })) ?? [];
+  const resolvedProductMenuItems = productMenuItems ?? catalogMenus?.[1].map((product) => ({
+    name: product.name,
+    href: `/products/${product.slug}`
+  })) ?? [];
 
   return (
     <div className={cn("min-h-screen", lockDesktopViewport && "lg:h-screen lg:overflow-hidden", theme === "dim" && "items-dim")}>
@@ -51,9 +63,9 @@ export async function SiteShell({
                 activeRoute={activeRoute}
                 navigation={navigation}
                 artistMenuExpanded={artistMenuExpanded}
-                artistMenuItems={artistMenuItems}
+                artistMenuItems={resolvedArtistMenuItems}
                 productMenuExpanded={productMenuExpanded}
-                productMenuItems={productMenuItems}
+                productMenuItems={resolvedProductMenuItems}
                 viewportLocked={lockDesktopViewport}
               />
               <section className={cn("min-w-0", lockDesktopViewport && "flex min-h-0 flex-col")}>
