@@ -86,27 +86,28 @@ export function DesktopSidebar({
 
             return (
               <div key={item.href}>
-                <div className={cn("flex items-center justify-between", isActive && "text-items-blue")}>
-                  <Link className="hover:text-items-blueHover" href={item.href} onClick={() => handleNavClick(item)} prefetch>
-                    {item.label}
-                  </Link>
-                  {isDisclosure ? (
-                    <button
-                      aria-controls={`${item.route}-sidebar-disclosure`}
-                      aria-expanded={isExpanded}
-                      aria-label={`${isExpanded ? "Collapse" : "Expand"} ${item.label}`}
-                      className="-m-2 p-2 hover:text-items-blueHover"
-                      onClick={() => {
-                        if (disclosureRoute) toggleDisclosure(disclosureRoute);
-                      }}
-                      type="button"
-                    >
-                      <AnimatedPlusMinus open={isExpanded} />
-                    </button>
-                  ) : (
+                {isDisclosure ? (
+                  <button
+                    aria-controls={`${item.route}-sidebar-disclosure`}
+                    aria-expanded={isExpanded}
+                    className={cn("flex w-full items-center justify-between text-left hover:text-items-blueHover", isActive && "text-items-blue")}
+                    onClick={() => toggleDisclosure(disclosureRoute)}
+                    type="button"
+                  >
+                    <span>{item.label}</span>
+                    <AnimatedPlusMinus open={isExpanded} />
+                  </button>
+                ) : (
+                  <Link
+                    className={cn("flex w-full items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
+                    href={item.href}
+                    onClick={() => handleNavClick(item)}
+                    prefetch
+                  >
+                    <span>{item.label}</span>
                     <AnimatedPlusMinus open={isActive} />
-                  )}
-                </div>
+                  </Link>
+                )}
                 {isDisclosure && (
                   <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} open={isExpanded}>
                     <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
