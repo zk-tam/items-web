@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { primaryNavigation, type ArtistMenuItem, type NavigationItem, type PrimaryRoute, type ProductMenuItem } from "@/data/navigation";
@@ -39,6 +39,7 @@ export function DesktopSidebar({
   const router = useRouter();
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
   const [disclosureRoute, setDisclosureRoute] = useState<DisclosureRoute | null | undefined>(undefined);
+  const [pendingNavigation, setPendingNavigation] = useState<NavigationItem | null>(null);
   const displayRoute = pendingRoute ?? activeRoute;
   const serverDisclosureRoute: DisclosureRoute | null = productMenuExpanded ? "shop" : artistMenuExpanded ? "artists" : null;
   const expandedRoute = disclosureRoute === undefined ? serverDisclosureRoute : disclosureRoute;
@@ -57,11 +58,29 @@ export function DesktopSidebar({
     return () => window.clearTimeout(timer);
   }, [artistMenuItems, navigation, productMenuItems, router]);
 
-  function handleNavClick(item: NavigationItem) {
+  function handleNavClick(event: MouseEvent<HTMLAnchorElement>, item: NavigationItem) {
     setPendingRoute(item.route);
+    setPendingNavigation(null);
+    if (!expandedRoute) return;
+
+    event.preventDefault();
+    setDisclosureRoute(null);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      router.push(item.href);
+      return;
+    }
+
+    setPendingNavigation(item);
+  }
+
+  function handleDisclosureCollapseComplete() {
+    if (!pendingNavigation) return;
+    setPendingNavigation(null);
+    router.push(pendingNavigation.href);
   }
 
   function toggleDisclosure(route: DisclosureRoute) {
+    setPendingNavigation(null);
     setPendingRoute(route);
     setDisclosureRoute((current) => {
       const currentlyOpen = current === undefined ? serverDisclosureRoute : current;
@@ -102,7 +121,7 @@ export function DesktopSidebar({
                   <Link
                     className={cn("flex w-full items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
                     href={item.href}
-                    onClick={() => handleNavClick(item)}
+                    onClick={(event) => handleNavClick(event, item)}
                     prefetch
                   >
                     <span>{item.label}</span>
@@ -110,7 +129,7 @@ export function DesktopSidebar({
                   </Link>
                 )}
                 {isDisclosure && (
-                  <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} open={isExpanded}>
+                  <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} onCollapseComplete={handleDisclosureCollapseComplete} open={isExpanded}>
                     <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
                       {menuItems.map((menuItem) => (
                         <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
