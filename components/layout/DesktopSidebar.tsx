@@ -62,6 +62,7 @@ export function DesktopSidebar({
   }
 
   function toggleDisclosure(route: DisclosureRoute) {
+    setPendingRoute(route);
     setDisclosureRoute((current) => {
       const currentlyOpen = current === undefined ? serverDisclosureRoute : current;
       return currentlyOpen === route ? null : route;
