@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 type SidebarDisclosureProps = {
   id?: string;
   open: boolean;
-  onCollapseComplete?: () => void;
+  onTransitionComplete?: () => void;
   children: ReactNode;
 };
 
-export function SidebarDisclosure({ id, open, onCollapseComplete, children }: SidebarDisclosureProps) {
+export function SidebarDisclosure({ id, open, onTransitionComplete, children }: SidebarDisclosureProps) {
   function handleTransitionEnd(event: TransitionEvent<HTMLDivElement>) {
-    if (open || event.target !== event.currentTarget || event.propertyName !== "grid-template-rows") return;
-    onCollapseComplete?.();
+    if (event.target !== event.currentTarget || event.propertyName !== "grid-template-rows") return;
+    onTransitionComplete?.();
   }
 
   return (

@@ -22,6 +22,10 @@ type DesktopSidebarProps = {
 };
 
 type DisclosureRoute = "shop" | "artists";
+type PendingNavigation = {
+  href: string;
+  transitionRoute: DisclosureRoute;
+};
 
 function isDisclosureRoute(route: PrimaryRoute): route is DisclosureRoute {
   return route === "shop" || route === "artists";
@@ -39,7 +43,7 @@ export function DesktopSidebar({
   const router = useRouter();
   const [pendingRoute, setPendingRoute] = useState<PrimaryRoute | null>(null);
   const [disclosureRoute, setDisclosureRoute] = useState<DisclosureRoute | null | undefined>(undefined);
-  const [pendingNavigation, setPendingNavigation] = useState<NavigationItem | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null);
   const displayRoute = pendingRoute ?? activeRoute;
   const serverDisclosureRoute: DisclosureRoute | null = productMenuExpanded ? "shop" : artistMenuExpanded ? "artists" : null;
   const expandedRoute = disclosureRoute === undefined ? serverDisclosureRoute : disclosureRoute;
@@ -65,27 +69,39 @@ export function DesktopSidebar({
 
     event.preventDefault();
     setDisclosureRoute(null);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      router.push(item.href);
+    navigateAfterDisclosureTransition(item.href, expandedRoute);
+  }
+
+  function hasMenuItems(route: DisclosureRoute) {
+    return route === "shop" ? productMenuItems.length > 0 : artistMenuItems.length > 0;
+  }
+
+  function navigateAfterDisclosureTransition(href: string, transitionRoute: DisclosureRoute) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !hasMenuItems(transitionRoute)) {
+      router.push(href);
       return;
     }
 
-    setPendingNavigation(item);
+    setPendingNavigation({ href, transitionRoute });
   }
 
-  function handleDisclosureCollapseComplete() {
-    if (!pendingNavigation) return;
+  function handleDisclosureClick(event: MouseEvent<HTMLAnchorElement>, item: NavigationItem, route: DisclosureRoute) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const currentlyOpen = expandedRoute === route;
+    setPendingRoute(route);
+    setPendingNavigation(null);
+    setDisclosureRoute(currentlyOpen ? null : route);
+    event.preventDefault();
+    if (displayRoute === route) return;
+
+    navigateAfterDisclosureTransition(item.href, route);
+  }
+
+  function handleDisclosureTransitionComplete(route: DisclosureRoute) {
+    if (!pendingNavigation || pendingNavigation.transitionRoute !== route) return;
     setPendingNavigation(null);
     router.push(pendingNavigation.href);
-  }
-
-  function toggleDisclosure(route: DisclosureRoute) {
-    setPendingNavigation(null);
-    setPendingRoute(route);
-    setDisclosureRoute((current) => {
-      const currentlyOpen = current === undefined ? serverDisclosureRoute : current;
-      return currentlyOpen === route ? null : route;
-    });
   }
 
   return (
@@ -107,16 +123,17 @@ export function DesktopSidebar({
             return (
               <div key={item.href}>
                 {isDisclosure ? (
-                  <button
+                  <Link
                     aria-controls={`${item.route}-sidebar-disclosure`}
                     aria-expanded={isExpanded}
                     className={cn("flex w-full items-center justify-between text-left hover:text-items-blueHover", isActive && "text-items-blue")}
-                    onClick={() => toggleDisclosure(disclosureRoute)}
-                    type="button"
+                    href={item.href}
+                    onClick={(event) => handleDisclosureClick(event, item, disclosureRoute)}
+                    prefetch
                   >
                     <span>{item.label}</span>
                     <AnimatedPlusMinus open={isExpanded} />
-                  </button>
+                  </Link>
                 ) : (
                   <Link
                     className={cn("flex w-full items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
@@ -129,7 +146,7 @@ export function DesktopSidebar({
                   </Link>
                 )}
                 {isDisclosure && (
-                  <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} onCollapseComplete={handleDisclosureCollapseComplete} open={isExpanded}>
+                  <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} onTransitionComplete={() => handleDisclosureTransitionComplete(disclosureRoute)} open={isExpanded}>
                     <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
                       {menuItems.map((menuItem) => (
                         <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
