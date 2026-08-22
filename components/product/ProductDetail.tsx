@@ -17,7 +17,7 @@ export function ProductDetail({ product, artist }: ProductDetailProps) {
     <article className="grid gap-10 lg:h-full lg:min-h-0 lg:grid-cols-2 lg:gap-0">
       <div className="-mx-7 overflow-hidden lg:mx-0 lg:h-full lg:min-h-0 lg:overflow-visible">
         <div className="w-full lg:mx-auto lg:h-full lg:max-w-[calc((100vh-15.625rem)*0.8)]">
-          <CatalogMediaGallery media={product.media} label={`${product.name} media`} emptyLabel="No product media" carousel showCaptions={false} />
+          <CatalogMediaGallery media={product.media} label={`${product.name} media`} emptyLabel="No product media" carousel showCaptions={false} autoPlayVideos />
         </div>
       </div>
 

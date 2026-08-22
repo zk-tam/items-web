@@ -10,6 +10,7 @@ type CatalogMediaGalleryProps = {
   emptyLabel?: string;
   carousel?: boolean;
   showCaptions?: boolean;
+  autoPlayVideos?: boolean;
 };
 
 type MediaFigureProps = {
@@ -21,6 +22,8 @@ type MediaFigureProps = {
   parallax?: boolean;
   fillContainer?: boolean;
   muted?: boolean;
+  autoPlayVideo?: boolean;
+  isActive?: boolean;
 };
 
 function MediaFigure({
@@ -31,9 +34,29 @@ function MediaFigure({
   priority = index === 0,
   parallax = false,
   fillContainer = false,
-  muted = false
+  muted = false,
+  autoPlayVideo = false,
+  isActive = true
 }: MediaFigureProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const mediaClassName = `object-cover${parallax ? " items-media-parallax" : ""}${muted ? " items-media-muted" : " items-media-active"}`;
+  const shouldAutoPlayVideo = autoPlayVideo && isActive && entry.mediaType === "video";
+
+  useEffect(() => {
+    if (entry.mediaType !== "video") return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!shouldAutoPlayVideo) {
+      video.pause();
+      return;
+    }
+
+    video.muted = true;
+    const playAttempt = video.play();
+    void playAttempt.catch(() => undefined);
+  }, [entry.mediaType, entry.src, shouldAutoPlayVideo]);
 
   return (
     <figure className={`relative overflow-visible${fillContainer ? " h-full w-full" : ""}`}>
@@ -48,7 +71,18 @@ function MediaFigure({
             className={mediaClassName}
           />
         ) : (
-          <video src={entry.src} controls playsInline preload="metadata" className={`h-full w-full ${mediaClassName}`} aria-label={entry.alt || `${label} video ${index + 1}`} />
+          <video
+            ref={videoRef}
+            src={entry.src}
+            autoPlay={shouldAutoPlayVideo}
+            controls={!autoPlayVideo}
+            loop={autoPlayVideo}
+            muted={autoPlayVideo}
+            playsInline
+            preload={shouldAutoPlayVideo ? "auto" : "metadata"}
+            className={`h-full w-full ${mediaClassName}`}
+            aria-label={entry.alt || `${label} video ${index + 1}`}
+          />
         )}
       </div>
       {showCaption && entry.alt ? <figcaption className="pt-2 text-sm font-bold">{entry.alt}</figcaption> : null}
@@ -81,7 +115,22 @@ function getCarouselSlideStride(scrollViewport: HTMLDivElement) {
     : firstSlide.offsetWidth;
 }
 
-function CarouselMediaGallery({ media, label, showCaptions }: Pick<CatalogMediaGalleryProps, "media" | "label"> & { showCaptions: boolean }) {
+function useDesktopGallery() {
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const updateViewport = () => setIsDesktop(mediaQuery.matches);
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
+
+  return isDesktop;
+}
+
+function CarouselMediaGallery({ media, label, showCaptions, autoPlayVideos }: Pick<CatalogMediaGalleryProps, "media" | "label" | "autoPlayVideos"> & { showCaptions: boolean }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollEndTimerRef = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -155,7 +204,16 @@ function CarouselMediaGallery({ media, label, showCaptions }: Pick<CatalogMediaG
         <div ref={viewportRef} className="items-carousel-scroll flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-[calc(10%+12px)] touch-auto" onScroll={handleScroll}>
           {slides.map(({ entry, logicalIndex, key }, slideIndex) => (
             <div key={`${key}-${slideIndex}`} aria-hidden={slideIndex !== activeSlideIndex} className="w-full shrink-0 snap-center">
-              <MediaFigure entry={entry} index={logicalIndex} label={label} showCaption={showCaptions} priority={slideIndex === 1} muted={slideIndex !== activeSlideIndex} />
+              <MediaFigure
+                entry={entry}
+                index={logicalIndex}
+                label={label}
+                showCaption={showCaptions}
+                priority={slideIndex === 1}
+                muted={slideIndex !== activeSlideIndex}
+                autoPlayVideo={autoPlayVideos}
+                isActive={slideIndex === activeSlideIndex}
+              />
             </div>
           ))}
         </div>
@@ -194,8 +252,9 @@ function StackedMediaGallery({
   media,
   label,
   showCaptions,
+  autoPlayVideos,
   scrollable = false
-}: Pick<CatalogMediaGalleryProps, "media" | "label"> & { showCaptions: boolean; scrollable?: boolean }) {
+}: Pick<CatalogMediaGalleryProps, "media" | "label" | "autoPlayVideos"> & { showCaptions: boolean; scrollable?: boolean }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const frameRef = useRef<number | null>(null);
@@ -280,7 +339,17 @@ function StackedMediaGallery({
     <div ref={scrollable ? viewportRef : undefined} className={scrollable ? "items-media-scroll grid h-full min-h-0 snap-y snap-mandatory content-start justify-items-center gap-4 overflow-y-auto overscroll-contain" : "grid gap-5"} aria-label={label}>
       {media.map((entry, index) => (
         <div key={entry.id ?? entry.src} ref={scrollable ? (element) => { itemRefs.current[index] = element; } : undefined} className={`relative${mediaCardClassName}`}>
-          <MediaFigure entry={entry} index={index} label={label} showCaption={showCaptions} parallax={scrollable} fillContainer={scrollable} muted={scrollable && activeIndex !== index} />
+          <MediaFigure
+            entry={entry}
+            index={index}
+            label={label}
+            showCaption={showCaptions}
+            parallax={scrollable}
+            fillContainer={scrollable}
+            muted={scrollable && activeIndex !== index}
+            autoPlayVideo={autoPlayVideos}
+            isActive={!scrollable || activeIndex === index}
+          />
         </div>
       ))}
     </div>
@@ -297,7 +366,9 @@ function StackedMediaGallery({
   );
 }
 
-export function CatalogMediaGallery({ media, label, emptyLabel, carousel = false, showCaptions = true }: CatalogMediaGalleryProps) {
+export function CatalogMediaGallery({ media, label, emptyLabel, carousel = false, showCaptions = true, autoPlayVideos = false }: CatalogMediaGalleryProps) {
+  const isDesktop = useDesktopGallery();
+
   if (media.length === 0) {
     return emptyLabel ? <div className="aspect-[4/5] rounded-itemLg bg-items-placeholder" aria-label={emptyLabel} /> : null;
   }
@@ -306,14 +377,14 @@ export function CatalogMediaGallery({ media, label, emptyLabel, carousel = false
     return (
       <>
         <div className="lg:hidden">
-          <CarouselMediaGallery media={media} label={label} showCaptions={showCaptions} />
+          <CarouselMediaGallery media={media} label={label} showCaptions={showCaptions} autoPlayVideos={autoPlayVideos && isDesktop === false} />
         </div>
         <div className="hidden h-full min-h-0 lg:block">
-          <StackedMediaGallery media={media} label={label} showCaptions={showCaptions} scrollable />
+          <StackedMediaGallery media={media} label={label} showCaptions={showCaptions} autoPlayVideos={autoPlayVideos && isDesktop === true} scrollable />
         </div>
       </>
     );
   }
 
-  return <StackedMediaGallery media={media} label={label} showCaptions={showCaptions} />;
+  return <StackedMediaGallery media={media} label={label} showCaptions={showCaptions} autoPlayVideos={autoPlayVideos} />;
 }
