@@ -232,10 +232,6 @@ select {
     top: calc((var(--items-header-height) - var(--items-header-logo-size)) / 2);
   }
 
-  .items-sidebar-navigation {
-    container-type: size;
-  }
-
   .items-sidebar-disclosure {
     display: grid;
     grid-template-rows: 0fr;
@@ -247,9 +243,8 @@ select {
   }
 
   .items-sidebar-disclosure > div > div {
-    max-block-size: min(22dvh, 12rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    max-block-size: none;
+    overflow: visible;
     padding-right: 0.25rem;
     opacity: 0;
     transform: translateY(-0.25rem);
@@ -264,12 +259,6 @@ select {
   .items-sidebar-disclosure-open > div > div {
     opacity: 1;
     transform: translateY(0);
-  }
-
-  @supports (height: 1cqh) {
-    .items-sidebar-disclosure > div > div {
-      max-block-size: min(12rem, max(3rem, calc(100cqh - 7rem)));
-    }
   }
 
   .items-cart-backdrop {

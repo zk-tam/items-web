@@ -111,58 +111,60 @@ export function DesktopSidebar({
         <div aria-hidden className="absolute bottom-0 left-8 right-0 h-px bg-items-blue" />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden px-8 pt-8">
-        <nav aria-label="Primary navigation" className="items-sidebar-navigation min-h-0 space-y-4 overflow-hidden text-[13px] font-black leading-none">
-          {navigation.map((item) => {
-            const isActive = displayRoute === item.route;
-            const disclosureRoute = isDisclosureRoute(item.route) ? item.route : null;
-            const isDisclosure = disclosureRoute !== null;
-            const menuItems = item.route === "shop" ? productMenuItems : item.route === "artists" ? artistMenuItems : [];
-            const isExpanded = item.route === "shop" ? isExpandedProducts : item.route === "artists" && isExpandedArtists;
+      <div className="mb-9 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex min-h-full flex-col px-8 pt-8">
+          <nav aria-label="Primary navigation" className="shrink-0 space-y-4 text-[13px] font-black leading-none">
+            {navigation.map((item) => {
+              const isActive = displayRoute === item.route;
+              const disclosureRoute = isDisclosureRoute(item.route) ? item.route : null;
+              const isDisclosure = disclosureRoute !== null;
+              const menuItems = item.route === "shop" ? productMenuItems : item.route === "artists" ? artistMenuItems : [];
+              const isExpanded = item.route === "shop" ? isExpandedProducts : item.route === "artists" && isExpandedArtists;
 
-            return (
-              <div key={item.href}>
-                {isDisclosure ? (
-                  <Link
-                    aria-controls={`${item.route}-sidebar-disclosure`}
-                    aria-expanded={isExpanded}
-                    className={cn("flex w-full items-center justify-between text-left hover:text-items-blueHover", isActive && "text-items-blue")}
-                    href={item.href}
-                    onClick={(event) => handleDisclosureClick(event, item, disclosureRoute)}
-                    prefetch
-                  >
-                    <span>{item.label}</span>
-                    <AnimatedPlusMinus open={isExpanded} />
-                  </Link>
-                ) : (
-                  <Link
-                    className={cn("flex w-full items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
-                    href={item.href}
-                    onClick={(event) => handleNavClick(event, item)}
-                    prefetch
-                  >
-                    <span>{item.label}</span>
-                    <AnimatedPlusMinus open={isActive} />
-                  </Link>
-                )}
-                {isDisclosure && (
-                  <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} onTransitionComplete={() => handleDisclosureTransitionComplete(disclosureRoute)} open={isExpanded}>
-                    <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
-                      {menuItems.map((menuItem) => (
-                        <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
-                          {menuItem.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </SidebarDisclosure>
-                )}
-              </div>
-            );
-          })}
-        </nav>
+              return (
+                <div key={item.href}>
+                  {isDisclosure ? (
+                    <Link
+                      aria-controls={`${item.route}-sidebar-disclosure`}
+                      aria-expanded={isExpanded}
+                      className={cn("flex w-full items-center justify-between text-left hover:text-items-blueHover", isActive && "text-items-blue")}
+                      href={item.href}
+                      onClick={(event) => handleDisclosureClick(event, item, disclosureRoute)}
+                      prefetch
+                    >
+                      <span>{item.label}</span>
+                      <AnimatedPlusMinus open={isExpanded} />
+                    </Link>
+                  ) : (
+                    <Link
+                      className={cn("flex w-full items-center justify-between hover:text-items-blueHover", isActive && "text-items-blue")}
+                      href={item.href}
+                      onClick={(event) => handleNavClick(event, item)}
+                      prefetch
+                    >
+                      <span>{item.label}</span>
+                      <AnimatedPlusMinus open={isActive} />
+                    </Link>
+                  )}
+                  {isDisclosure && (
+                    <SidebarDisclosure id={`${item.route}-sidebar-disclosure`} onTransitionComplete={() => handleDisclosureTransitionComplete(disclosureRoute)} open={isExpanded}>
+                      <div className="space-y-[10px] pl-7 text-[11px] font-bold leading-none">
+                        {menuItems.map((menuItem) => (
+                          <Link key={menuItem.href} href={menuItem.href} className="block hover:text-items-blueHover" onFocus={() => router.prefetch(menuItem.href)} onMouseEnter={() => router.prefetch(menuItem.href)} prefetch>
+                            {menuItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </SidebarDisclosure>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
 
-        <div className="shrink-0 pb-9 pt-8">
-          <FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} />
+          <div className="mt-auto shrink-0 pt-8">
+            <FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} />
+          </div>
         </div>
       </div>
       <div aria-hidden className="items-sidebar-divider absolute bottom-9 right-0 w-px bg-items-blue" />
