@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import type { CatalogMedia } from "@/lib/catalog/types";
+import { useVideoSoundStore } from "@/lib/media/sound-store";
 
 type CatalogMediaGalleryProps = {
   media: CatalogMedia[];
@@ -39,6 +41,8 @@ function MediaFigure({
   isActive = true
 }: MediaFigureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isVideoMuted = useVideoSoundStore((state) => state.isMuted);
+  const setVideoMuted = useVideoSoundStore((state) => state.setMuted);
   const mediaClassName = `object-cover${parallax ? " items-media-parallax" : ""}${muted ? " items-media-muted" : " items-media-active"}`;
   const shouldAutoPlayVideo = autoPlayVideo && isActive && entry.mediaType === "video";
 
@@ -53,10 +57,31 @@ function MediaFigure({
       return;
     }
 
-    video.muted = true;
+    video.muted = isVideoMuted;
     const playAttempt = video.play();
-    void playAttempt.catch(() => undefined);
-  }, [entry.mediaType, entry.src, shouldAutoPlayVideo]);
+    void playAttempt.catch(() => {
+      if (video.muted) return;
+      video.muted = true;
+      setVideoMuted(true);
+      void video.play().catch(() => undefined);
+    });
+  }, [entry.mediaType, entry.src, isVideoMuted, setVideoMuted, shouldAutoPlayVideo]);
+
+  function toggleVideoMute() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setVideoMuted(nextMuted);
+
+    if (!nextMuted) {
+      void video.play().catch(() => {
+        video.muted = true;
+        setVideoMuted(true);
+      });
+    }
+  }
 
   return (
     <figure className={`relative overflow-visible${fillContainer ? " h-full w-full" : ""}`}>
@@ -77,13 +102,23 @@ function MediaFigure({
             autoPlay={shouldAutoPlayVideo}
             controls={!autoPlayVideo}
             loop={autoPlayVideo}
-            muted={autoPlayVideo}
+            muted={autoPlayVideo ? isVideoMuted : undefined}
             playsInline
             preload={shouldAutoPlayVideo ? "auto" : "metadata"}
             className={`h-full w-full ${mediaClassName}`}
             aria-label={entry.alt || `${label} video ${index + 1}`}
           />
         )}
+        {entry.mediaType === "video" && autoPlayVideo && isActive ? (
+          <button
+            type="button"
+            onClick={toggleVideoMute}
+            aria-label={isVideoMuted ? "Unmute video" : "Mute video"}
+            className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center bg-transparent text-items-blue transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-items-blue focus-visible:ring-offset-2"
+          >
+            {isVideoMuted ? <VolumeX aria-hidden className="h-[23px] w-[23px]" strokeWidth={2.4} /> : <Volume2 aria-hidden className="h-[23px] w-[23px]" strokeWidth={2.4} />}
+          </button>
+        ) : null}
       </div>
       {showCaption && entry.alt ? <figcaption className="pt-2 text-sm font-bold">{entry.alt}</figcaption> : null}
     </figure>
