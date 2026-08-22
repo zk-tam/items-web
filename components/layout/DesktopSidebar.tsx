@@ -111,8 +111,8 @@ export function DesktopSidebar({
         <div aria-hidden className="absolute bottom-0 left-8 right-0 h-px bg-items-blue" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-9 pt-8">
-        <nav aria-label="Primary navigation" className="shrink-0 space-y-4 text-[13px] font-black leading-none">
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden px-8 pt-8">
+        <nav aria-label="Primary navigation" className="items-sidebar-navigation min-h-0 space-y-4 overflow-hidden text-[13px] font-black leading-none">
           {navigation.map((item) => {
             const isActive = displayRoute === item.route;
             const disclosureRoute = isDisclosureRoute(item.route) ? item.route : null;
@@ -161,7 +161,7 @@ export function DesktopSidebar({
           })}
         </nav>
 
-        <div className="mt-auto shrink-0 pt-8">
+        <div className="shrink-0 pb-9 pt-8">
           <FooterLinks hideInstagram hideShipping afterPrivacy={<SidebarContactActions />} />
         </div>
       </div>
