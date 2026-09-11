@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
 import { archiveArtist, archiveItem, createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
-import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
+import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseOrderedIds, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 import { CATALOG_CACHE_TAG } from "@/lib/db/items-repository";
 import { MAIN_NAVIGATION_LABEL_MAX_LENGTH, saveMainNavigationLabels, SITE_SETTINGS_CACHE_TAG } from "@/lib/site-settings/repository";
@@ -44,7 +44,7 @@ function parseItemInput(formData: FormData) {
     throw new Error("Add a MYR price, a USD price, or both.");
   }
   return {
-    artistId: requiredText(formData.get("artistId"), "Artist"),
+    artistIds: parseOrderedIds(formData.get("artistIds"), "Artists"),
     slug: parseSlug(formData.get("slug")),
     name: requiredText(formData.get("name"), "Name"),
     description: requiredText(formData.get("description"), "Description"),

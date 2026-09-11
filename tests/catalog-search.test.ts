@@ -23,6 +23,7 @@ const items: CatalogItem[] = [
     name: "Thunder Incense Vase",
     artistName: "ZZ Liu",
     artistSlug: "zz-liu",
+    artists: [artists[0]!],
     description: "A sculptural vase made from rusted mild steel.",
     shortDescription: "A vase that brings thunder to your space.",
     specs: [],

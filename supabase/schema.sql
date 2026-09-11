@@ -89,6 +89,17 @@ create table if not exists items (
   updated_at timestamptz not null default now()
 );
 
+-- The first ordered relation is mirrored in items.artist_id for legacy order
+-- records and integrations. All catalog artist credits come from this table.
+create table if not exists item_artists (
+  item_id uuid not null references items(id) on delete cascade,
+  artist_id uuid not null references artists(id) on delete restrict,
+  sort_order integer not null check (sort_order >= 0),
+  created_at timestamptz not null default now(),
+  primary key (item_id, artist_id),
+  unique (item_id, sort_order)
+);
+
 create table if not exists item_media (
   id uuid primary key default gen_random_uuid(),
   item_id uuid not null references items(id) on delete cascade,
@@ -200,6 +211,7 @@ on conflict (id) do nothing;
 
 create index if not exists artists_catalog_idx on artists (is_published, archived_at, sort_order asc nulls last, created_at desc, name);
 create index if not exists items_catalog_idx on items (artist_id, is_published, archived_at, sort_order asc nulls last, created_at desc, name);
+create index if not exists item_artists_artist_item_idx on item_artists (artist_id, item_id);
 create index if not exists item_media_item_idx on item_media (item_id, sort_order);
 create index if not exists artist_media_artist_idx on artist_media (artist_id, sort_order);
 create index if not exists artist_links_artist_idx on artist_links (artist_id, sort_order);
@@ -219,6 +231,7 @@ alter table artists enable row level security;
 alter table artist_links enable row level security;
 alter table artist_media enable row level security;
 alter table items enable row level security;
+alter table item_artists enable row level security;
 alter table item_media enable row level security;
 alter table orders enable row level security;
 alter table order_lines enable row level security;

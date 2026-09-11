@@ -37,9 +37,7 @@ type ItemRow = {
   id: string;
   slug: string;
   name: string;
-  artistId: string;
-  artistName: string;
-  artistSlug: string;
+  artists: ArtistRow[] | null;
   description: string;
   shortDescription: string | null;
   preview: string[] | null;
@@ -104,9 +102,46 @@ const itemSelect = `
     item.id,
     item.slug,
     item.name,
-    item.artist_id as "artistId",
-    artist.name as "artistName",
-    artist.slug as "artistSlug",
+    coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            'id', credited_artist.id,
+            'slug', credited_artist.slug,
+            'name', credited_artist.name,
+            'role', credited_artist.role,
+            'description', credited_artist.description,
+            'email', credited_artist.email,
+            'websiteUrl', credited_artist.website_url,
+            'seoTitle', credited_artist.seo_title,
+            'seoDescription', credited_artist.seo_description,
+            'imagePath', credited_artist.profile_image_path,
+            'imageAlt', credited_artist.profile_image_alt,
+            'initiallyExpanded', credited_artist.initially_expanded,
+            'isPublished', credited_artist.is_published,
+            'archivedAt', credited_artist.archived_at,
+            'sortOrder', credited_artist.sort_order,
+            'media', '[]'::jsonb,
+            'links', coalesce(
+              (
+                select jsonb_agg(
+                  jsonb_build_object('id', link.id, 'label', link.label, 'href', link.url, 'sortOrder', link.sort_order)
+                  order by link.sort_order asc, link.label asc
+                )
+                from artist_links link
+                where link.artist_id = credited_artist.id
+              ),
+              '[]'::jsonb
+            )
+          )
+          order by item_artist.sort_order asc
+        )
+        from item_artists item_artist
+        join artists credited_artist on credited_artist.id = item_artist.artist_id
+        where item_artist.item_id = item.id
+      ),
+      '[]'::jsonb
+    ) as artists,
     item.description,
     item.short_description as "shortDescription",
     item.preview,
@@ -132,7 +167,6 @@ const itemSelect = `
       '[]'::jsonb
     ) as media
   from items item
-  join artists artist on artist.id = item.artist_id
   left join item_media media on media.item_id = item.id
 `;
 
@@ -175,13 +209,18 @@ function mapArtist(row: ArtistRow): Artist {
 }
 
 function mapItem(row: ItemRow): Product {
+  const artists = (row.artists ?? []).map(mapArtist);
+  const primaryArtist = artists[0];
+  const artistName = artists.map((artist) => artist.name).join(" + ") || "Unknown artist";
+
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
-    artistId: row.artistId,
-    artistName: row.artistName,
-    artistSlug: row.artistSlug,
+    artistId: primaryArtist?.id,
+    artistName,
+    artistSlug: primaryArtist?.slug ?? "",
+    artists,
     description: row.description,
     shortDescription: row.shortDescription ?? undefined,
     preview: row.preview ?? undefined,
@@ -204,33 +243,57 @@ function mapItem(row: ItemRow): Product {
       mimeType: media.mimeType,
       sortOrder: media.sortOrder
     })),
-    orderMessage: row.orderMessage ?? `Hello ITEMS, I want to order ${row.name} by ${row.artistName}.`,
+    orderMessage: row.orderMessage ?? `Hello ITEMS, I want to order ${row.name} by ${artistName}.`,
     isPublished: row.isPublished,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     sortOrder: row.sortOrder ?? undefined
   };
 }
 
+const publishedItemFilter = `
+  item.is_published = true
+  and item.archived_at is null
+  and exists (
+    select 1
+    from item_artists item_artist
+    join artists credited_artist on credited_artist.id = item_artist.artist_id
+    where item_artist.item_id = item.id
+  )
+  and not exists (
+    select 1
+    from item_artists item_artist
+    join artists credited_artist on credited_artist.id = item_artist.artist_id
+    where item_artist.item_id = item.id
+      and (credited_artist.is_published = false or credited_artist.archived_at is not null)
+  )
+`;
+
 async function listProductsFromDatabase() {
   const rows = await queryRows<ItemRow>(`${itemSelect}
-    where item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
-    group by item.id, artist.id
+    where ${publishedItemFilter}
+    group by item.id
     order by item.sort_order asc nulls last, item.created_at desc, item.name asc`);
   return (rows ?? []).map(mapItem);
 }
 
 async function getProductBySlugFromDatabase(slug: string) {
   const rows = await queryRows<ItemRow>(`${itemSelect}
-    where item.slug = $1 and item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
-    group by item.id, artist.id
+    where item.slug = $1 and ${publishedItemFilter}
+    group by item.id
     limit 1`, [slug]);
   return rows?.[0] ? mapItem(rows[0]) : undefined;
 }
 
 async function listProductsByArtistSlugFromDatabase(artistSlug: string) {
   const rows = await queryRows<ItemRow>(`${itemSelect}
-    where artist.slug = $1 and item.is_published = true and item.archived_at is null and artist.is_published = true and artist.archived_at is null
-    group by item.id, artist.id
+    where ${publishedItemFilter}
+      and exists (
+        select 1
+        from item_artists item_artist
+        join artists credited_artist on credited_artist.id = item_artist.artist_id
+        where item_artist.item_id = item.id and credited_artist.slug = $1
+      )
+    group by item.id
     order by item.sort_order asc nulls last, item.created_at desc, item.name asc`, [artistSlug]);
   return (rows ?? []).map(mapItem);
 }

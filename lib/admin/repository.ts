@@ -31,6 +31,7 @@ export type AdminItem = {
   id: string;
   artistId: string;
   artistName: string;
+  artists: Array<{ id: string; name: string; sortOrder: number }>;
   slug: string;
   name: string;
   description: string;
@@ -110,7 +111,36 @@ export type ArtistInput = Omit<AdminArtist, "id" | "archivedAt" | "itemCount" | 
   links: Array<{ label: string; url: string }>;
 };
 
-export type ItemInput = Omit<AdminItem, "id" | "artistName" | "archivedAt" | "media">;
+export type ItemInput = Omit<AdminItem, "id" | "artistId" | "artistName" | "artists" | "archivedAt" | "media"> & {
+  artistIds: string[];
+};
+
+const itemArtistsSelect = `
+  coalesce(
+    (
+      select jsonb_agg(
+        jsonb_build_object('id', credited_artist.id, 'name', credited_artist.name, 'sortOrder', item_artist.sort_order)
+        order by item_artist.sort_order asc
+      )
+      from item_artists item_artist
+      join artists credited_artist on credited_artist.id = item_artist.artist_id
+      where item_artist.item_id = item.id
+    ),
+    '[]'::jsonb
+  ) as artists
+`;
+
+const itemArtistNameSelect = `
+  coalesce(
+    (
+      select string_agg(credited_artist.name, ' + ' order by item_artist.sort_order asc)
+      from item_artists item_artist
+      join artists credited_artist on credited_artist.id = item_artist.artist_id
+      where item_artist.item_id = item.id
+    ),
+    artist.name
+  ) as "artistName"
+`;
 
 export async function listAdminArtists() {
   return (await queryRows<AdminArtist>(
@@ -118,9 +148,10 @@ export async function listAdminArtists() {
             artist.website_url as "websiteUrl", artist.seo_title as "seoTitle", artist.seo_description as "seoDescription", artist.profile_image_path as "profileImagePath",
             artist.profile_image_alt as "profileImageAlt", artist.initially_expanded as "initiallyExpanded",
             artist.is_published as "isPublished", artist.archived_at as "archivedAt", artist.sort_order as "sortOrder",
-            count(item.id)::int as "itemCount", '[]'::jsonb as links, '[]'::jsonb as media
+            count(distinct item.id)::int as "itemCount", '[]'::jsonb as links, '[]'::jsonb as media
      from artists artist
-     left join items item on item.artist_id = artist.id and item.archived_at is null
+     left join item_artists item_artist on item_artist.artist_id = artist.id
+     left join items item on item.id = item_artist.item_id and item.archived_at is null
      group by artist.id
      order by artist.archived_at nulls first, artist.sort_order asc nulls last, artist.created_at desc, artist.name asc`
   )) ?? [];
@@ -178,7 +209,7 @@ export async function archiveArtist(id: string) {
 
 export async function listAdminItems() {
   return (await queryRows<AdminItem>(
-    `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
+    `select item.id, item.artist_id as "artistId", ${itemArtistNameSelect}, ${itemArtistsSelect}, item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
             item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id
@@ -188,7 +219,7 @@ export async function listAdminItems() {
 
 export async function listItemOptions() {
   return (await queryRows<{ id: string; name: string; artistName: string; priceCents: number; stockCount: number }>(
-    `select item.id, item.name, artist.name as "artistName", item.myr_price_cents as "priceCents", item.stock_count as "stockCount"
+    `select item.id, item.name, ${itemArtistNameSelect}, item.myr_price_cents as "priceCents", item.stock_count as "stockCount"
      from items item join artists artist on artist.id = item.artist_id
      where item.archived_at is null and item.myr_price_cents is not null
      order by item.name asc`
@@ -197,7 +228,7 @@ export async function listItemOptions() {
 
 export async function getAdminItem(id: string) {
   const item = await queryRow<AdminItem>(
-    `select item.id, item.artist_id as "artistId", artist.name as "artistName", item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
+    `select item.id, item.artist_id as "artistId", ${itemArtistNameSelect}, ${itemArtistsSelect}, item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
             item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id where item.id = $1`,
@@ -212,23 +243,45 @@ export async function getAdminItem(id: string) {
 }
 
 export async function saveItem(input: ItemInput, id?: string) {
+  const artistIds = [...input.artistIds];
+  if (artistIds.length === 0) throw new Error("Choose at least one artist.");
+  if (new Set(artistIds).size !== artistIds.length) throw new Error("An artist can only be added once.");
+
   const legacyPriceCents = input.myrPriceCents ?? input.usdPriceCents ?? 0;
   const legacyCurrency = input.myrPriceCents === null ? "USD" : "MYR";
-  const query = id
-    ? {
-        text: `update items set artist_id = $2, slug = $3, name = $4, description = $5, short_description = $6, preview = $7, specs = $8, size = $9, category = $10,
-              myr_price_cents = $11, usd_price_cents = $12, price_cents = $13, currency = $14, stock_count = $15, order_message = $16, is_published = $17, sort_order = $18, seo_title = $19, seo_description = $20
-              where id = $1 returning id`,
-        values: [id, input.artistId, input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
-      }
-    : {
-        text: `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, sort_order, seo_title, seo_description)
-              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id`,
-        values: [input.artistId, input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
-      };
-  const result = await queryRow<{ id: string }>(query.text, query.values);
-  if (!result) throw new Error("Item could not be saved.");
-  return result.id;
+  return withTransaction(async (client) => {
+    const selectedArtists = await client.query<{ id: string }>(
+      `select id from artists where id = any($1::uuid[]) and archived_at is null`,
+      [artistIds]
+    );
+    if (selectedArtists.rows.length !== artistIds.length) {
+      throw new Error("One or more selected artists are unavailable.");
+    }
+
+    const result = id
+      ? await client.query<{ id: string }>(
+          `update items set artist_id = $2, slug = $3, name = $4, description = $5, short_description = $6, preview = $7, specs = $8, size = $9, category = $10,
+                myr_price_cents = $11, usd_price_cents = $12, price_cents = $13, currency = $14, stock_count = $15, order_message = $16, is_published = $17, sort_order = $18, seo_title = $19, seo_description = $20
+                where id = $1 returning id`,
+          [id, artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+        )
+      : await client.query<{ id: string }>(
+          `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, sort_order, seo_title, seo_description)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id`,
+          [artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+        );
+    const itemId = result.rows[0]?.id;
+    if (!itemId) throw new Error("Item could not be saved.");
+
+    await client.query(`delete from item_artists where item_id = $1`, [itemId]);
+    for (const [sortOrder, artistId] of artistIds.entries()) {
+      await client.query(
+        `insert into item_artists (item_id, artist_id, sort_order) values ($1, $2, $3)`,
+        [itemId, artistId, sortOrder]
+      );
+    }
+    return itemId;
+  });
 }
 
 export async function synchronizeItemMedia(itemId: string, order: ItemMediaOrderEntry[]) {
@@ -432,7 +485,7 @@ export async function createOrder(input: { customerName: string; customerEmail: 
     for (const line of input.lines) quantities.set(line.itemId, (quantities.get(line.itemId) ?? 0) + line.quantity);
     const itemIds = [...quantities.keys()];
     const items = await client.query<{ id: string; name: string; artistName: string; priceCents: number; thumbnailPath: string | null }>(
-      `select item.id, item.name, artist.name as "artistName", item.myr_price_cents as "priceCents",
+      `select item.id, item.name, ${itemArtistNameSelect}, item.myr_price_cents as "priceCents",
               (select media.storage_path from item_media media where media.item_id = item.id and media.media_type = 'image' order by media.sort_order asc limit 1) as "thumbnailPath"
        from items item join artists artist on artist.id = item.artist_id
        where item.id = any($1::uuid[]) and item.archived_at is null and item.myr_price_cents is not null

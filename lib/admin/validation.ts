@@ -4,6 +4,7 @@ import { getItemMediaMimeType, isDirectCatalogMediaPath, itemMediaMimeTypes, MAX
 type LinkInput = { label: string; url: string };
 
 const slugPattern = /^[@_.]*[a-z0-9][a-z0-9@_.]*(?:-[@_.]*[a-z0-9][a-z0-9@_.]*)*$/;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function requiredText(value: FormDataEntryValue | null, label: string) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -102,6 +103,25 @@ export function parseLines(value: FormDataEntryValue | null) {
   return text
     ? text.split("\n").map((line) => line.trim()).filter(Boolean)
     : [];
+}
+
+export function parseOrderedIds(value: FormDataEntryValue | null, label: string) {
+  if (typeof value !== "string") throw new Error(`${label} is required.`);
+
+  let values: unknown;
+  try {
+    values = JSON.parse(value);
+  } catch {
+    throw new Error(`${label} are invalid.`);
+  }
+
+  if (!Array.isArray(values) || values.length === 0 || values.length > 100 || values.some((id) => typeof id !== "string" || !uuidPattern.test(id))) {
+    throw new Error(`${label} are invalid.`);
+  }
+
+  const ids = values.map((id) => id.toLowerCase());
+  if (new Set(ids).size !== ids.length) throw new Error(`${label} contain duplicates.`);
+  return ids;
 }
 
 export function parseLinks(value: FormDataEntryValue | null): LinkInput[] {

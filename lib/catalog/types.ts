@@ -43,6 +43,8 @@ export type CatalogItem = {
   artistName: string;
   artistSlug: string;
   artistId?: string;
+  /** Ordered credits. The first artist is the primary artist for legacy uses. */
+  artists: CatalogArtist[];
   description: string;
   shortDescription?: string;
   preview?: string[];

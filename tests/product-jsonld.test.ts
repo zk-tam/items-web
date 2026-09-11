@@ -8,6 +8,7 @@ describe("product JSON-LD", () => {
       name: "Item Name",
       artistName: "Artist Name",
       artistSlug: "artist-name",
+      artists: [],
       description: "Item description.",
       myrPriceCents: 120000,
       usdPriceCents: 25000,

@@ -15,6 +15,7 @@ type ArtistOption = {
 
 type ItemValues = {
   artistId: string;
+  artists: Array<{ id: string; name: string; sortOrder: number }>;
   slug: string;
   name: string;
   description: string;
@@ -60,13 +61,40 @@ function isRedirectError(error: unknown) {
 
 export function ItemFormClient({ item, artists, existingMedia, action }: ItemFormClientProps) {
   const mediaUploaderRef = useRef<ItemMediaUploaderHandle>(null);
+  const [artistIds, setArtistIds] = useState(() => item?.artists.length ? item.artists.map((artist) => artist.id) : item?.artistId ? [item.artistId] : []);
   const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const availableArtists = artists.filter((artist) => !artist.archivedAt);
+  const artistsById = new Map(artists.map((artist) => [artist.id, artist]));
+  const selectedArtists = artistIds.flatMap((id) => {
+    const artist = artistsById.get(id);
+    return artist ? [artist] : [];
+  });
+
+  function addArtist(artistId: string) {
+    if (!artistId || artistIds.includes(artistId)) return;
+    setArtistIds((current) => [...current, artistId]);
+  }
+
+  function moveArtist(artistId: string, direction: -1 | 1) {
+    setArtistIds((current) => {
+      const index = current.indexOf(artistId);
+      const targetIndex = index + direction;
+      if (index < 0 || targetIndex < 0 || targetIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
+    if (artistIds.length === 0) {
+      setSubmitError("Choose at least one artist.");
+      return;
+    }
 
     setIsSaving(true);
     setSubmitError(null);
@@ -85,10 +113,13 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
 
   return (
     <form onSubmit={handleSubmit} className="grid max-w-3xl gap-5">
-      <div className="grid gap-5 md:grid-cols-2">
-        <label className="grid gap-1 font-bold">Artist<select name="artistId" required defaultValue={item?.artistId} className="border border-items-blue bg-transparent p-3"><option value="">Select an artist</option>{artists.filter((artist) => !artist.archivedAt).map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</select></label>
-        <label className="grid gap-1 font-bold">Category<input name="category" defaultValue={item?.category ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
-      </div>
+      <fieldset className="grid gap-3 border border-items-blue p-4">
+        <legend className="px-1 font-bold">Artists <span className="text-xs font-normal">The first artist is shown first across the catalog.</span></legend>
+        <input name="artistIds" type="hidden" value={JSON.stringify(artistIds)} />
+        <label className="grid gap-1 font-bold">Add artist<select value="" onChange={(event) => addArtist(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3"><option value="">Select an artist</option>{availableArtists.filter((artist) => !artistIds.includes(artist.id)).map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</select></label>
+        {selectedArtists.length > 0 ? <ol className="grid gap-2" aria-label="Selected artists in display order">{selectedArtists.map((artist, index) => <li key={artist.id} className="flex flex-wrap items-center gap-2 border border-items-blue px-3 py-2"><span className="min-w-0 flex-1 font-bold">{index + 1}. {artist.name}</span><button type="button" onClick={() => moveArtist(artist.id, -1)} disabled={index === 0} className="border border-items-blue px-2 py-1 text-sm font-bold disabled:opacity-40" aria-label={`Move ${artist.name} earlier`}>↑</button><button type="button" onClick={() => moveArtist(artist.id, 1)} disabled={index === selectedArtists.length - 1} className="border border-items-blue px-2 py-1 text-sm font-bold disabled:opacity-40" aria-label={`Move ${artist.name} later`}>↓</button><button type="button" onClick={() => setArtistIds((current) => current.filter((id) => id !== artist.id))} className="border border-red-600 px-2 py-1 text-sm font-bold text-red-700" aria-label={`Remove ${artist.name}`}>Remove</button></li>)}</ol> : <p className="text-sm font-medium">Choose at least one artist.</p>}
+      </fieldset>
+      <label className="grid gap-1 font-bold">Category<input name="category" defaultValue={item?.category ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">Name<input name="name" required defaultValue={item?.name} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={item?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">{siteDisplayHost}/products/{item?.slug ?? "your-slug"}</span></label>
       <label className="grid gap-1 font-bold">Description<textarea name="description" required rows={5} defaultValue={item?.description} className="border border-items-blue bg-transparent p-3" /></label>

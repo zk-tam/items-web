@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseOptionalNonNegativeInteger, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug } from "../lib/admin/validation";
+import { parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseOptionalNonNegativeInteger, parseOrderedIds, parsePriceCents, parseSeoDescription, parseSeoTitle, parseSlug } from "../lib/admin/validation";
 import { validateItemMediaUploadRequest } from "../lib/admin/item-media";
 
 describe("admin form validation", () => {
@@ -28,6 +28,13 @@ describe("admin form validation", () => {
     expect(parseLinks("https://www.instagram.com/itemsartist/")).toEqual([
       { label: "Instagram", url: "https://www.instagram.com/itemsartist/" }
     ]);
+  });
+
+  it("keeps selected artists in their configured order and rejects invalid selections", () => {
+    const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
+    expect(parseOrderedIds(JSON.stringify(ids), "Artists")).toEqual(ids);
+    expect(() => parseOrderedIds(JSON.stringify([ids[0], ids[0]]), "Artists")).toThrow("duplicates");
+    expect(() => parseOrderedIds(JSON.stringify(["not-an-id"]), "Artists")).toThrow("invalid");
   });
 
   it("limits editable SEO fields to search-result-friendly lengths", () => {

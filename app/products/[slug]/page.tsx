@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/layout/SiteShell";
 import { ProductDetail } from "@/components/product/ProductDetail";
-import { getArtistBySlug, getProductBySlug } from "@/lib/db/items-repository";
+import { getProductBySlug } from "@/lib/db/items-repository";
 import { itemMetadata } from "@/lib/seo/catalog-metadata";
 import { productJsonLd, serializeJsonLd } from "@/lib/seo/product-jsonld";
 import { decodeCatalogSlug } from "@/lib/catalog/slug";
@@ -39,14 +39,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const artist = await getArtistBySlug(product.artistSlug);
   const structuredData = productJsonLd(product);
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }} />
       <SiteShell activeRoute="shop" detailHeader lockDesktopViewport>
-        <ProductDetail product={product} artist={artist ?? undefined} />
+        <ProductDetail product={product} artists={product.artists} />
       </SiteShell>
     </>
   );

@@ -29,9 +29,9 @@ try {
      join pg_namespace on pg_namespace.oid = pg_class.relnamespace
      where nspname = 'public'
        and relname = any($1::text[])`,
-    [["artists", "artist_links", "artist_media", "items", "item_media", "orders", "order_lines", "order_documents", "admin_users", "admin_sessions", "analytics_page_views"]]
+    [["artists", "artist_links", "artist_media", "items", "item_artists", "item_media", "orders", "order_lines", "order_documents", "admin_users", "admin_sessions", "analytics_page_views"]]
   );
-  if (rls.rows.length !== 11 || rls.rows.some((row) => !row.relrowsecurity)) {
+  if (rls.rows.length !== 12 || rls.rows.some((row) => !row.relrowsecurity)) {
     throw new Error("Expected RLS to be enabled on every ITEMS application table.");
   }
 
@@ -63,6 +63,28 @@ try {
       [artistId, itemSlug]
     );
     const itemId = item.rows[0].id;
+    const collaborator = await client.query(
+      `insert into artists (slug, name, role, description)
+       values ($1, 'Audit Collaborator', 'Test', 'Second rollback-only artist credit') returning id`,
+      [`audit-collaborator-${token.slice(0, 10)}`]
+    );
+    const collaboratorId = collaborator.rows[0].id;
+    await client.query(
+      `insert into item_artists (item_id, artist_id, sort_order)
+       values ($1, $2, 0), ($1, $3, 1)`,
+      [itemId, artistId, collaboratorId]
+    );
+    const itemArtists = await client.query(
+      `select artist.name, item_artist.sort_order
+       from item_artists item_artist
+       join artists artist on artist.id = item_artist.artist_id
+       where item_artist.item_id = $1
+       order by item_artist.sort_order`,
+      [itemId]
+    );
+    if (itemArtists.rows.map((row) => row.name).join(" + ") !== "Audit Artist + Audit Collaborator") {
+      throw new Error("Item artist credits did not persist in order.");
+    }
     const firstImagePath = `audit/${token}-first.jpg`;
     const secondImagePath = `audit/${token}-second.jpg`;
     const videoPath = `audit/${token}-video.mp4`;
@@ -157,7 +179,7 @@ try {
     throw new Error("catalog-images is missing or is not public.");
   }
 
-  console.log("Integration smoke test passed: schema, RLS, analytics, SEO metadata, artist/item media ordering, media types, constraints, order snapshots, and image bucket.");
+  console.log("Integration smoke test passed: schema, RLS, ordered item artists, analytics, SEO metadata, artist/item media ordering, media types, constraints, order snapshots, and image bucket.");
 } finally {
   await client.end();
 }

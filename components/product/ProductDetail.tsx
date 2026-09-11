@@ -7,10 +7,10 @@ import { itemPriceLabels } from "@/lib/catalog/pricing";
 
 type ProductDetailProps = {
   product: Product;
-  artist?: Artist;
+  artists: Artist[];
 };
 
-export function ProductDetail({ product, artist }: ProductDetailProps) {
+export function ProductDetail({ product, artists }: ProductDetailProps) {
   const prices = itemPriceLabels(product);
 
   return (
@@ -44,7 +44,9 @@ export function ProductDetail({ product, artist }: ProductDetailProps) {
           </div>
         </section>
 
-        <ArtistBio artist={artist} />
+        <div className="space-y-10">
+          {artists.map((artist) => <ArtistBio key={artist.id ?? artist.slug} artist={artist} />)}
+        </div>
       </div>
     </article>
   );
