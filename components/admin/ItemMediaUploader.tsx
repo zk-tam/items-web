@@ -3,7 +3,10 @@
 import type { ChangeEvent, DragEvent } from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import * as tus from "tus-js-client";
-import { ChevronLeft, ChevronRight, Film, ImagePlus, Trash2 } from "lucide-react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Film, GripVertical, ImagePlus, Trash2 } from "lucide-react";
 import { discardUnattachedCatalogMediaAction, requestCatalogMediaUploadAction } from "@/app/admin/actions";
 import { getItemMediaMimeType, itemMediaMimeTypes, MAX_ITEM_MEDIA, MAX_ITEM_MEDIA_ALT_LENGTH, type CatalogMediaArea, type ItemMediaKind } from "@/lib/admin/item-media";
 
@@ -43,7 +46,7 @@ type MediaEntry =
   | NewMedia;
 
 export type ItemMediaUploaderHandle = {
-  prepareForSubmission: () => Promise<string>;
+  prepareForSubmission: () => Promise<string | null>;
   discardUploadedMedia: () => Promise<void>;
 };
 
@@ -60,8 +63,55 @@ function serializeMediaOrder(entries: MediaEntry[]) {
   ).filter(Boolean));
 }
 
+function hasMediaChanges(entries: MediaEntry[], existingMedia: ExistingMedia[]) {
+  if (entries.length !== existingMedia.length) return true;
+
+  return entries.some((entry, index) => {
+    const original = existingMedia[index];
+    return entry.kind !== "existing"
+      || !original
+      || entry.id !== original.id
+      || entry.altText.trim() !== (original.altText ?? "").trim();
+  });
+}
+
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Media upload failed. Please try again.";
+}
+
+type SortableMediaEntryProps = {
+  entry: MediaEntry;
+  index: number;
+  singular: string;
+  area: CatalogMediaArea;
+  onRemove: () => void;
+  onAltTextChange: (altText: string) => void;
+};
+
+function SortableMediaEntry({ entry, index, singular, area, onRemove, onAltTextChange }: SortableMediaEntryProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entryKey(entry) });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <li ref={setNodeRef} style={style} className={`grid gap-3 border border-items-blue p-3 ${isDragging ? "z-10 opacity-50" : ""}`}>
+      <div className="relative aspect-square overflow-hidden bg-items-placeholder">
+        {entry.mediaType === "video" ? <video src={entry.src} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : (
+          // Blob previews cannot be processed by next/image.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={entry.src} alt={entry.altText || `${singular} image ${index + 1}`} className="h-full w-full object-cover" />
+        )}
+        <span className="absolute left-2 top-2 bg-items-white px-2 py-1 text-xs font-black">{index + 1}{index === 0 && area === "items" ? " · Cover" : ""}</span>
+        {entry.mediaType === "video" ? <span className="absolute right-2 top-2 bg-items-blue p-1 text-items-white"><Film aria-label="Video" className="h-4 w-4" /></span> : null}
+        {entry.kind === "new" ? <span className="absolute bottom-2 right-2 bg-items-blue px-2 py-1 text-xs font-black text-items-white">{entry.status === "uploading" ? `${entry.progress}%` : entry.status === "ready" ? "Uploaded" : entry.status === "error" ? "Retry upload" : "Ready"}</span> : null}
+      </div>
+      <label className="grid gap-1 text-sm font-bold">{entry.mediaType === "video" ? "Caption" : "Alt text"}<input value={entry.altText} maxLength={MAX_ITEM_MEDIA_ALT_LENGTH} onChange={(event) => onAltTextChange(event.currentTarget.value)} className="border border-items-blue bg-transparent p-2" /></label>
+      <div className="flex items-center gap-2">
+        <button type="button" {...attributes} {...listeners} aria-label={`Drag media ${index + 1} to reorder`} className="touch-none border border-items-blue p-2" title="Drag to reorder"><GripVertical aria-hidden className="h-4 w-4" /></button>
+        <span className="text-xs font-medium">Drag to reorder</span>
+        <button type="button" onClick={onRemove} disabled={entry.kind === "new" && entry.status === "uploading"} aria-label={`Remove media ${index + 1}`} className="ml-auto border border-red-600 p-2 text-red-700 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 aria-hidden className="h-4 w-4" /></button>
+      </div>
+    </li>
+  );
 }
 
 async function uploadWithTus(entry: NewMedia, target: SignedUpload, onProgress: (percentage: number) => void) {
@@ -106,6 +156,10 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
   const previewUrlsRef = useRef(new Set<string>());
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
   const [entries, setEntries] = useState<MediaEntry[]>(() => existingMedia.map((media) => ({
     kind: "existing",
     id: media.id,
@@ -175,13 +229,14 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
     addFiles(Array.from(event.dataTransfer.files));
   }
 
-  function moveEntry(index: number, direction: -1 | 1) {
-    const destination = index + direction;
-    if (destination < 0 || destination >= entries.length) return;
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
     setEntries((current) => {
-      const next = [...current];
-      [next[index], next[destination]] = [next[destination], next[index]];
-      return next;
+      const from = current.findIndex((entry) => entryKey(entry) === active.id);
+      const to = current.findIndex((entry) => entryKey(entry) === over.id);
+      if (from < 0 || to < 0) return current;
+      return arrayMove(current, from, to);
     });
   }
 
@@ -203,7 +258,9 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
   const prepareForSubmission = useCallback(async () => {
     const snapshot = entries;
     const waitingEntries = snapshot.filter((entry): entry is NewMedia => entry.kind === "new" && !entry.storagePath);
-    if (waitingEntries.length === 0) return serializeMediaOrder(snapshot);
+    if (waitingEntries.length === 0) {
+      return hasMediaChanges(snapshot, existingMedia) ? serializeMediaOrder(snapshot) : null;
+    }
 
     const unsignedEntries = waitingEntries.filter((entry) => !entry.uploadTarget);
     const targetsByToken = new Map(waitingEntries.filter((entry) => entry.uploadTarget).map((entry) => [entry.token, entry.uploadTarget!]));
@@ -245,7 +302,7 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
       setError(errorMessage(uploadError));
       throw uploadError;
     }
-  }, [area, entries]);
+  }, [area, entries, existingMedia]);
 
   const discardUploadedMedia = useCallback(async () => {
     const paths = entries.filter((entry): entry is NewMedia => entry.kind === "new" && Boolean(entry.storagePath)).map((entry) => entry.storagePath!);
@@ -276,28 +333,13 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
       </div>
       {error ? <p role="alert" className="border border-red-600 p-3 text-sm font-bold text-red-700">{error}</p> : null}
       {entries.length > 0 ? (
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {entries.map((entry, index) => (
-            <li key={entryKey(entry)} className="grid gap-3 border border-items-blue p-3">
-              <div className="relative aspect-square overflow-hidden bg-items-placeholder">
-                {entry.mediaType === "video" ? <video src={entry.src} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : (
-                  // Blob previews cannot be processed by next/image.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={entry.src} alt={entry.altText || `${singular} image ${index + 1}`} className="h-full w-full object-cover" />
-                )}
-                <span className="absolute left-2 top-2 bg-items-white px-2 py-1 text-xs font-black">{index + 1}{index === 0 && area === "items" ? " · Cover" : ""}</span>
-                {entry.mediaType === "video" ? <span className="absolute right-2 top-2 bg-items-blue p-1 text-items-white"><Film aria-label="Video" className="h-4 w-4" /></span> : null}
-                {entry.kind === "new" ? <span className="absolute bottom-2 right-2 bg-items-blue px-2 py-1 text-xs font-black text-items-white">{entry.status === "uploading" ? `${entry.progress}%` : entry.status === "ready" ? "Uploaded" : entry.status === "error" ? "Retry upload" : "Ready"}</span> : null}
-              </div>
-              <label className="grid gap-1 text-sm font-bold">{entry.mediaType === "video" ? "Caption" : "Alt text"}<input value={entry.altText} maxLength={MAX_ITEM_MEDIA_ALT_LENGTH} onChange={(event) => updateAltText(index, event.currentTarget.value)} className="border border-items-blue bg-transparent p-2" /></label>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => moveEntry(index, -1)} disabled={index === 0 || (entry.kind === "new" && entry.status === "uploading")} aria-label={`Move media ${index + 1} earlier`} className="border border-items-blue p-2 disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft aria-hidden className="h-4 w-4" /></button>
-                <button type="button" onClick={() => moveEntry(index, 1)} disabled={index === entries.length - 1 || (entry.kind === "new" && entry.status === "uploading")} aria-label={`Move media ${index + 1} later`} className="border border-items-blue p-2 disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight aria-hidden className="h-4 w-4" /></button>
-                <button type="button" onClick={() => removeEntry(index)} disabled={entry.kind === "new" && entry.status === "uploading"} aria-label={`Remove media ${index + 1}`} className="ml-auto border border-red-600 p-2 text-red-700 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 aria-hidden className="h-4 w-4" /></button>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={entries.map(entryKey)} strategy={rectSortingStrategy}>
+            <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {entries.map((entry, index) => <SortableMediaEntry key={entryKey(entry)} entry={entry} index={index} singular={singular} area={area} onRemove={() => removeEntry(index)} onAltTextChange={(altText) => updateAltText(index, altText)} />)}
+            </ol>
+          </SortableContext>
+        </DndContext>
       ) : <p className="border border-dashed border-items-blue p-4 text-sm">No {singular} media yet.</p>}
     </section>
   );

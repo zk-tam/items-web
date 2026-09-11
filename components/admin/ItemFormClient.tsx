@@ -2,6 +2,10 @@
 
 import type { FormEvent } from "react";
 import { useRef, useState } from "react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 import { ItemMediaUploader, type ItemMediaUploaderHandle } from "@/components/admin/ItemMediaUploader";
 import { SeoFields } from "@/components/admin/SeoFields";
 import type { ItemMediaKind } from "@/lib/admin/item-media";
@@ -59,11 +63,34 @@ function isRedirectError(error: unknown) {
   return Boolean(error && typeof error === "object" && "digest" in error && typeof error.digest === "string" && error.digest.startsWith("NEXT_REDIRECT"));
 }
 
+type SortableArtistRowProps = {
+  artist: ArtistOption;
+  index: number;
+  onRemove: () => void;
+};
+
+function SortableArtistRow({ artist, index, onRemove }: SortableArtistRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: artist.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <li ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2 border border-items-blue px-3 py-2 ${isDragging ? "z-10 opacity-50" : ""}`}>
+      <button type="button" {...attributes} {...listeners} className="touch-none border border-items-blue p-1" title="Drag to reorder" aria-label={`Drag ${artist.name} to reorder`}><GripVertical aria-hidden className="h-4 w-4" /></button>
+      <span className="min-w-0 flex-1 font-bold">{index + 1}. {artist.name}</span>
+      <button type="button" onClick={onRemove} className="border border-red-600 px-2 py-1 text-sm font-bold text-red-700" aria-label={`Remove ${artist.name}`}>Remove</button>
+    </li>
+  );
+}
+
 export function ItemFormClient({ item, artists, existingMedia, action }: ItemFormClientProps) {
   const mediaUploaderRef = useRef<ItemMediaUploaderHandle>(null);
   const [artistIds, setArtistIds] = useState(() => item?.artists.length ? item.artists.map((artist) => artist.id) : item?.artistId ? [item.artistId] : []);
   const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
   const availableArtists = artists.filter((artist) => !artist.archivedAt);
   const artistsById = new Map(artists.map((artist) => [artist.id, artist]));
   const selectedArtists = artistIds.flatMap((id) => {
@@ -76,14 +103,14 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
     setArtistIds((current) => [...current, artistId]);
   }
 
-  function moveArtist(artistId: string, direction: -1 | 1) {
+  function reorderArtists(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
     setArtistIds((current) => {
-      const index = current.indexOf(artistId);
-      const targetIndex = index + direction;
-      if (index < 0 || targetIndex < 0 || targetIndex >= current.length) return current;
-      const next = [...current];
-      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-      return next;
+      const from = current.indexOf(String(active.id));
+      const to = current.indexOf(String(over.id));
+      if (from < 0 || to < 0) return current;
+      return arrayMove(current, from, to);
     });
   }
 
@@ -99,9 +126,9 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
     setIsSaving(true);
     setSubmitError(null);
     try {
-      const mediaOrder = await mediaUploaderRef.current?.prepareForSubmission() ?? "[]";
+      const mediaOrder = await mediaUploaderRef.current?.prepareForSubmission();
       const formData = new FormData(form);
-      formData.set("mediaOrder", mediaOrder);
+      if (mediaOrder !== null && mediaOrder !== undefined) formData.set("mediaOrder", mediaOrder);
       await action(formData);
     } catch (error) {
       if (isRedirectError(error)) return;
@@ -117,7 +144,7 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
         <legend className="px-1 font-bold">Artists <span className="text-xs font-normal">The first artist is shown first across the catalog.</span></legend>
         <input name="artistIds" type="hidden" value={JSON.stringify(artistIds)} />
         <label className="grid gap-1 font-bold">Add artist<select value="" onChange={(event) => addArtist(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3"><option value="">Select an artist</option>{availableArtists.filter((artist) => !artistIds.includes(artist.id)).map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</select></label>
-        {selectedArtists.length > 0 ? <ol className="grid gap-2" aria-label="Selected artists in display order">{selectedArtists.map((artist, index) => <li key={artist.id} className="flex flex-wrap items-center gap-2 border border-items-blue px-3 py-2"><span className="min-w-0 flex-1 font-bold">{index + 1}. {artist.name}</span><button type="button" onClick={() => moveArtist(artist.id, -1)} disabled={index === 0} className="border border-items-blue px-2 py-1 text-sm font-bold disabled:opacity-40" aria-label={`Move ${artist.name} earlier`}>↑</button><button type="button" onClick={() => moveArtist(artist.id, 1)} disabled={index === selectedArtists.length - 1} className="border border-items-blue px-2 py-1 text-sm font-bold disabled:opacity-40" aria-label={`Move ${artist.name} later`}>↓</button><button type="button" onClick={() => setArtistIds((current) => current.filter((id) => id !== artist.id))} className="border border-red-600 px-2 py-1 text-sm font-bold text-red-700" aria-label={`Remove ${artist.name}`}>Remove</button></li>)}</ol> : <p className="text-sm font-medium">Choose at least one artist.</p>}
+        {selectedArtists.length > 0 ? <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorderArtists}><SortableContext items={artistIds} strategy={verticalListSortingStrategy}><ol className="grid gap-2" aria-label="Selected artists in display order">{selectedArtists.map((artist, index) => <SortableArtistRow key={artist.id} artist={artist} index={index} onRemove={() => setArtistIds((current) => current.filter((id) => id !== artist.id))} />)}</ol></SortableContext></DndContext> : <p className="text-sm font-medium">Choose at least one artist.</p>}
       </fieldset>
       <label className="grid gap-1 font-bold">Category<input name="category" defaultValue={item?.category ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">Name<input name="name" required defaultValue={item?.name} className="border border-items-blue bg-transparent p-3" /></label>
@@ -148,7 +175,7 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
       <ItemMediaUploader ref={mediaUploaderRef} existingMedia={existingMedia} />
       <label className="flex items-center gap-2 font-bold"><input name="isPublished" type="checkbox" defaultChecked={item?.isPublished ?? true} /> Published</label>
       {submitError ? <p role="alert" className="border border-red-600 p-3 text-sm font-bold text-red-700">{submitError}</p> : null}
-      <button type="submit" disabled={isSaving} className="w-fit bg-items-blue px-5 py-3 font-black text-items-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Uploading media and saving…" : "Save item"}</button>
+      <button type="submit" disabled={isSaving} className="w-fit bg-items-blue px-5 py-3 font-black text-items-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving item…" : "Save item"}</button>
     </form>
   );
 }

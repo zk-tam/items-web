@@ -23,6 +23,8 @@ The public catalog and admin panel read PostgreSQL exclusively. `DATABASE_URL` i
 ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="a-long-unique-password" npm run admin:create
 ```
 
+`ADMIN_EMAIL` and `ADMIN_PASSWORD` are inputs to that one-time provisioning command only; they are not runtime settings. Admin sign-in always verifies the password hash stored in PostgreSQL.
+
 4. Sign in at `/admin/login`. The panel manages artists, items, image uploads, manual WhatsApp-originated orders, invoice PDFs, and receipt PDFs.
 
 ## First-party analytics

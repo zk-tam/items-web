@@ -107,9 +107,9 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
     setIsSaving(true);
     setSubmitError(null);
     try {
-      const mediaOrder = await mediaUploaderRef.current?.prepareForSubmission() ?? "[]";
+      const mediaOrder = await mediaUploaderRef.current?.prepareForSubmission();
       const formData = new FormData(form);
-      formData.set("artistMediaOrder", mediaOrder);
+      if (mediaOrder !== null && mediaOrder !== undefined) formData.set("artistMediaOrder", mediaOrder);
       await action(formData);
     } catch (error) {
       if (isRedirectError(error)) return;
@@ -184,7 +184,7 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
         <label className="flex items-center gap-2 font-bold"><input name="initiallyExpanded" type="checkbox" defaultChecked={artist?.initiallyExpanded ?? false} /> Expand bio</label>
       </div>
       {submitError ? <p role="alert" className="border border-red-600 p-3 text-sm font-bold text-red-700">{submitError}</p> : null}
-      <button type="submit" disabled={isSaving} className="w-fit bg-items-blue px-5 py-3 font-black text-items-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Uploading media and saving…" : "Save artist"}</button>
+      <button type="submit" disabled={isSaving} className="w-fit bg-items-blue px-5 py-3 font-black text-items-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving artist…" : "Save artist"}</button>
     </form>
   );
 }

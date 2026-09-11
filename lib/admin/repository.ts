@@ -290,8 +290,8 @@ export async function synchronizeItemMedia(itemId: string, order: ItemMediaOrder
   }
 
   return withTransaction(async (client) => {
-    const existing = await client.query<{ id: string; storagePath: string }>(
-      `select id, storage_path as "storagePath" from item_media where item_id = $1 order by sort_order for update`,
+    const existing = await client.query<{ id: string; storagePath: string; altText: string | null; sortOrder: number }>(
+      `select id, storage_path as "storagePath", alt_text as "altText", sort_order as "sortOrder" from item_media where item_id = $1 order by sort_order for update`,
       [itemId]
     );
     const existingById = new Map(existing.rows.map((image) => [image.id, image]));
@@ -309,10 +309,13 @@ export async function synchronizeItemMedia(itemId: string, order: ItemMediaOrder
 
     for (const [sortOrder, entry] of order.entries()) {
       if (entry.kind === "existing") {
-        await client.query(
-          `update item_media set sort_order = $3, alt_text = $4 where id = $1 and item_id = $2`,
-          [entry.id, itemId, sortOrder, entry.altText]
-        );
+        const current = existingById.get(entry.id)!;
+        if (current.sortOrder !== sortOrder || current.altText !== entry.altText) {
+          await client.query(
+            `update item_media set sort_order = $3, alt_text = $4 where id = $1 and item_id = $2`,
+            [entry.id, itemId, sortOrder, entry.altText]
+          );
+        }
         continue;
       }
 
@@ -340,8 +343,8 @@ export async function synchronizeArtistMedia(artistId: string, order: ItemMediaO
   }
 
   return withTransaction(async (client) => {
-    const existing = await client.query<{ id: string; storagePath: string }>(
-      `select id, storage_path as "storagePath" from artist_media where artist_id = $1 order by sort_order for update`,
+    const existing = await client.query<{ id: string; storagePath: string; altText: string | null; sortOrder: number }>(
+      `select id, storage_path as "storagePath", alt_text as "altText", sort_order as "sortOrder" from artist_media where artist_id = $1 order by sort_order for update`,
       [artistId]
     );
     const existingById = new Map(existing.rows.map((media) => [media.id, media]));
@@ -359,10 +362,13 @@ export async function synchronizeArtistMedia(artistId: string, order: ItemMediaO
 
     for (const [sortOrder, entry] of order.entries()) {
       if (entry.kind === "existing") {
-        await client.query(
-          `update artist_media set sort_order = $3, alt_text = $4 where id = $1 and artist_id = $2`,
-          [entry.id, artistId, sortOrder, entry.altText]
-        );
+        const current = existingById.get(entry.id)!;
+        if (current.sortOrder !== sortOrder || current.altText !== entry.altText) {
+          await client.query(
+            `update artist_media set sort_order = $3, alt_text = $4 where id = $1 and artist_id = $2`,
+            [entry.id, artistId, sortOrder, entry.altText]
+          );
+        }
         continue;
       }
 
