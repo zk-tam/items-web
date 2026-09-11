@@ -1,10 +1,10 @@
-import type { AdminArtist, AdminItem } from "@/lib/admin/repository";
+import type { AdminArtistOption, AdminItem } from "@/lib/admin/repository";
 import { ItemFormClient } from "@/components/admin/ItemFormClient";
 import { getStoragePublicUrl } from "@/lib/storage/supabase-storage";
 
 type ItemFormProps = {
   item?: AdminItem;
-  artists: AdminArtist[];
+  artists: AdminArtistOption[];
   action: (formData: FormData) => void | Promise<void>;
 };
 

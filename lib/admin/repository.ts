@@ -52,6 +52,8 @@ export type AdminItem = {
   media: Array<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>;
 };
 
+export type AdminArtistOption = Pick<AdminArtist, "id" | "name" | "archivedAt">;
+
 export type OrderStatus = "draft" | "awaiting_payment" | "processing" | "shipped" | "completed" | "cancelled";
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
@@ -142,6 +144,27 @@ const itemArtistNameSelect = `
   ) as "artistName"
 `;
 
+const itemMediaSelect = `
+  coalesce(
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', media.id,
+          'storagePath', media.storage_path,
+          'altText', media.alt_text,
+          'mediaType', media.media_type,
+          'mimeType', media.mime_type,
+          'sortOrder', media.sort_order
+        )
+        order by media.sort_order asc
+      )
+      from item_media media
+      where media.item_id = item.id
+    ),
+    '[]'::jsonb
+  ) as media
+`;
+
 export async function listAdminArtists() {
   return (await queryRows<AdminArtist>(
     `select artist.id, artist.slug, artist.name, artist.role, artist.description, artist.email,
@@ -154,6 +177,14 @@ export async function listAdminArtists() {
      left join items item on item.id = item_artist.item_id and item.archived_at is null
      group by artist.id
      order by artist.archived_at nulls first, artist.sort_order asc nulls last, artist.created_at desc, artist.name asc`
+  )) ?? [];
+}
+
+export async function listAdminArtistOptions() {
+  return (await queryRows<AdminArtistOption>(
+    `select id, name, archived_at as "archivedAt"
+     from artists
+     order by archived_at nulls first, sort_order asc nulls last, created_at desc, name asc`
   )) ?? [];
 }
 
@@ -230,16 +261,11 @@ export async function getAdminItem(id: string) {
   const item = await queryRow<AdminItem>(
     `select item.id, item.artist_id as "artistId", ${itemArtistNameSelect}, ${itemArtistsSelect}, item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
-            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
+            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", ${itemMediaSelect}
      from items item join artists artist on artist.id = item.artist_id where item.id = $1`,
     [id]
   );
-  if (!item) return null;
-  const media = (await queryRows<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: ItemMediaMimeType; sortOrder: number }>(
-    `select id, storage_path as "storagePath", alt_text as "altText", media_type as "mediaType", mime_type as "mimeType", sort_order as "sortOrder" from item_media where item_id = $1 order by sort_order`,
-    [id]
-  )) ?? [];
-  return { ...item, media };
+  return item;
 }
 
 export async function saveItem(input: ItemInput, id?: string) {

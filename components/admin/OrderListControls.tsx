@@ -41,6 +41,7 @@ export function OrderListControls({ id, sort, status }: OrderListControlsProps) 
       else params.delete(key);
     }
     const query = params.toString();
+    window.dispatchEvent(new Event("items:admin-navigation-start"));
     router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
