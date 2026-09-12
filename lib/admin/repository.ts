@@ -188,6 +188,28 @@ export async function listAdminArtistOptions() {
   )) ?? [];
 }
 
+export async function saveAdminArtistOrder(artistIds: string[]) {
+  return withTransaction(async (client) => {
+    const activeArtists = await client.query<{ id: string }>(
+      `select id from artists where archived_at is null for update`
+    );
+    const activeIds = new Set(activeArtists.rows.map((artist) => artist.id));
+
+    if (activeIds.size !== artistIds.length || artistIds.some((id) => !activeIds.has(id))) {
+      throw new Error("The artist list changed. Refresh the page and try again.");
+    }
+
+    await client.query(
+      `update artists artist
+       set sort_order = (ordered.position - 1)::integer
+       from unnest($1::uuid[]) with ordinality as ordered(id, position)
+       where artist.id = ordered.id
+         and artist.sort_order is distinct from (ordered.position - 1)::integer`,
+      [artistIds]
+    );
+  });
+}
+
 export async function getAdminArtist(id: string) {
   const artist = await queryRow<AdminArtist>(
     `select id, slug, name, role, description, email, website_url as "websiteUrl", seo_title as "seoTitle", seo_description as "seoDescription",

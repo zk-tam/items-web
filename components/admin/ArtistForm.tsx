@@ -124,6 +124,7 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
     <form onSubmit={handleSubmit} className="grid max-w-3xl gap-5">
       <input type="hidden" name="existingProfileImagePath" value={retainExistingImage ? existingProfileImagePath : ""} />
       <input type="hidden" name="previousProfileImagePath" value={existingProfileImagePath} />
+      <input type="hidden" name="sortOrder" value={artist?.sortOrder ?? ""} />
       <label className="grid gap-1 font-bold">Name<input name="name" required value={artistName} onChange={(event) => setArtistName(event.currentTarget.value)} className="border border-items-blue bg-transparent p-3" /></label>
       <label className="grid gap-1 font-bold">URL handle<input name="slug" required defaultValue={artist?.slug} className="border border-items-blue bg-transparent p-3" /><span className="text-xs font-normal">{siteDisplayHost}/artists/{artist?.slug ?? "your-slug"}</span></label>
       <label className="grid gap-1 font-bold">Role / subtitle<input name="role" defaultValue={value(artist?.role)} className="border border-items-blue bg-transparent p-3" /></label>
@@ -179,7 +180,7 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
       </div>
       <ItemMediaUploader ref={mediaUploaderRef} area="artists" existingMedia={existingMedia} />
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-1 font-bold">Display order <span className="text-xs font-normal">Optional. Lower numbers appear first; otherwise newest created content appears first.</span><input name="sortOrder" type="number" min="0" defaultValue={artist?.sortOrder ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
+        <p className="text-sm font-medium md:col-span-2">Artist display order is managed from Arrange artists on the Artists page.</p>
         <label className="flex items-center gap-2 font-bold"><input name="isPublished" type="checkbox" defaultChecked={artist?.isPublished ?? true} /> Published</label>
         <label className="flex items-center gap-2 font-bold"><input name="initiallyExpanded" type="checkbox" defaultChecked={artist?.initiallyExpanded ?? false} /> Expand bio</label>
       </div>

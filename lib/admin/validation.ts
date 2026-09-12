@@ -105,7 +105,7 @@ export function parseLines(value: FormDataEntryValue | null) {
     : [];
 }
 
-export function parseOrderedIds(value: FormDataEntryValue | null, label: string) {
+export function parseOrderedIds(value: FormDataEntryValue | null, label: string, maximumLength = 100) {
   if (typeof value !== "string") throw new Error(`${label} is required.`);
 
   let values: unknown;
@@ -115,7 +115,7 @@ export function parseOrderedIds(value: FormDataEntryValue | null, label: string)
     throw new Error(`${label} are invalid.`);
   }
 
-  if (!Array.isArray(values) || values.length === 0 || values.length > 100 || values.some((id) => typeof id !== "string" || !uuidPattern.test(id))) {
+  if (!Array.isArray(values) || values.length === 0 || values.length > maximumLength || values.some((id) => typeof id !== "string" || !uuidPattern.test(id))) {
     throw new Error(`${label} are invalid.`);
   }
 
