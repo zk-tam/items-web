@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listArtists, listProducts } from "@/lib/db/items-repository";
 import { searchCatalog } from "@/lib/search/catalog-search";
+import { hasMaintenanceAccess } from "@/lib/auth/maintenance";
+import { isSiteMaintenanceModeEnabled } from "@/lib/site-settings/repository";
 
 export const runtime = "nodejs";
 
 const MAX_QUERY_LENGTH = 100;
 
 export async function GET(request: NextRequest) {
+  if (await isSiteMaintenanceModeEnabled() && !(await hasMaintenanceAccess())) {
+    return NextResponse.json({ results: [] }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (query.length > MAX_QUERY_LENGTH) {

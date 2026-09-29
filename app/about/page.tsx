@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "About Us"
 };
 
+export const dynamic = "force-dynamic";
+
 export default function AboutPage() {
   return (
     <SiteShell activeRoute="about" lockDesktopViewport>

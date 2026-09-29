@@ -8,7 +8,7 @@ import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type I
 import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseOrderedIds, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 import { CATALOG_CACHE_TAG } from "@/lib/db/items-repository";
-import { MAIN_NAVIGATION_LABEL_MAX_LENGTH, saveMainNavigationLabels, SITE_SETTINGS_CACHE_TAG } from "@/lib/site-settings/repository";
+import { MAIN_NAVIGATION_LABEL_MAX_LENGTH, saveMainNavigationLabels, saveSiteMaintenanceMode, SITE_SETTINGS_CACHE_TAG } from "@/lib/site-settings/repository";
 
 function asOptionalFile(value: FormDataEntryValue | null) {
   return typeof File !== "undefined" && value instanceof File && value.size > 0 ? value : null;
@@ -89,6 +89,19 @@ export async function updateMainNavigationLabelsAction(formData: FormData) {
   updateTag(SITE_SETTINGS_CACHE_TAG);
   revalidatePath("/", "layout");
   redirect("/admin/settings?saved=1");
+}
+
+export async function updateSiteMaintenanceModeAction(formData: FormData) {
+  await requireAdmin();
+  const requestedMode = formData.get("maintenanceMode");
+  if (requestedMode !== "enabled" && requestedMode !== "disabled") {
+    throw new Error("Maintenance mode is invalid.");
+  }
+  const maintenanceMode = requestedMode === "enabled";
+  await saveSiteMaintenanceMode(maintenanceMode);
+  updateTag(SITE_SETTINGS_CACHE_TAG);
+  revalidatePath("/", "layout");
+  redirect(`/admin?maintenance=${maintenanceMode ? "enabled" : "disabled"}`);
 }
 
 export async function loginAction(formData: FormData) {

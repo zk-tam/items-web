@@ -274,6 +274,128 @@ select {
     bottom: 0;
     width: clamp(320px, 26vw, 400px);
   }
+
+  .items-maintenance-card {
+    container-type: inline-size;
+    display: grid;
+    grid-template-rows: 1fr 10.74%;
+    width: min(90vw, 500px);
+    aspect-ratio: 1294 / 717;
+  }
+
+  .items-maintenance-stage {
+    position: relative;
+    min-width: 0;
+  }
+
+  .items-maintenance-logo {
+    position: absolute;
+    top: 7.11cqw;
+    left: 5.95cqw;
+    width: 51.15cqw;
+  }
+
+  .items-maintenance-contact {
+    position: absolute;
+    right: 6.10cqw;
+    bottom: 5.33cqw;
+    width: 41.03cqw;
+  }
+
+  .items-maintenance-contact-actions {
+    display: grid;
+    gap: 1.85cqw;
+  }
+
+  .items-maintenance-control {
+    height: 5.64cqw;
+  }
+
+  .items-maintenance-control-text {
+    font-size: 1.55cqw;
+  }
+
+  .items-maintenance-control-action {
+    width: 5.64cqw;
+  }
+
+  .items-maintenance-whatsapp {
+    width: 3.10cqw;
+    height: 3.10cqw;
+  }
+
+  .items-maintenance-plus {
+    position: absolute;
+    width: 4cqw;
+    height: 4cqw;
+    pointer-events: none;
+  }
+
+  .items-maintenance-plus::before,
+  .items-maintenance-plus::after {
+    position: absolute;
+    content: "";
+    background: var(--items-blue);
+  }
+
+  .items-maintenance-plus::before {
+    top: 1.84cqw;
+    left: 0;
+    width: 4cqw;
+    height: 0.32cqw;
+  }
+
+  .items-maintenance-plus::after {
+    top: 0;
+    left: 1.84cqw;
+    width: 0.32cqw;
+    height: 4cqw;
+  }
+
+  .items-maintenance-footer {
+    display: grid;
+    place-items: center;
+    font-size: 1.55cqw;
+    line-height: 1;
+  }
+
+  .items-maintenance-access {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    height: 5.64cqw;
+    border: 1px solid var(--items-blue);
+    background: var(--items-surface);
+  }
+
+  .items-maintenance-access-submit {
+    display: grid;
+    width: 5.64cqw;
+    flex: none;
+    place-items: center;
+    border: 0;
+    background: var(--items-blue);
+    color: var(--items-white);
+    font-size: 1.25cqw;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .items-maintenance-access-loader {
+    width: 2.2cqw;
+    height: 2.2cqw;
+  }
+
+  .items-maintenance-access-error {
+    position: absolute;
+    top: calc(100% + 0.5cqw);
+    left: 0;
+    margin: 0;
+    color: var(--items-blue);
+    font-size: 1.1cqw;
+    font-weight: 900;
+    line-height: 1;
+  }
 }
 
 @media (max-width: 1023px) {

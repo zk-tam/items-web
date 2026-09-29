@@ -201,6 +201,7 @@ create table if not exists site_settings (
   id boolean primary key default true check (id),
   shop_label text not null default 'Shop All' check (char_length(btrim(shop_label)) between 1 and 48),
   artists_label text not null default 'Artists' check (char_length(btrim(artists_label)) between 1 and 48),
+  maintenance_mode boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

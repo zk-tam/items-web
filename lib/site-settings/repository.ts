@@ -13,30 +13,44 @@ export type MainNavigationLabels = {
   artistsLabel: string;
 };
 
-type MainNavigationLabelsRow = MainNavigationLabels;
-
-const defaultMainNavigationLabels: MainNavigationLabels = {
-  shopLabel: "Shop All",
-  artistsLabel: "Artists"
+export type SiteSettings = MainNavigationLabels & {
+  maintenanceMode: boolean;
 };
 
-async function queryMainNavigationLabels() {
-  const row = await queryRow<MainNavigationLabelsRow>(
-    `select shop_label as "shopLabel", artists_label as "artistsLabel"
+type SiteSettingsRow = SiteSettings;
+
+const defaultSiteSettings: SiteSettings = {
+  shopLabel: "Shop All",
+  artistsLabel: "Artists",
+  maintenanceMode: false
+};
+
+async function querySiteSettings() {
+  const row = await queryRow<SiteSettingsRow>(
+    `select shop_label as "shopLabel", artists_label as "artistsLabel", maintenance_mode as "maintenanceMode"
      from site_settings
      where id = true`
   );
 
-  return row ?? defaultMainNavigationLabels;
+  return row ?? defaultSiteSettings;
 }
 
-const cachedMainNavigationLabels = unstable_cache(
-  queryMainNavigationLabels,
-  ["main-navigation-labels"],
+const cachedSiteSettings = unstable_cache(
+  querySiteSettings,
+  ["site-settings"],
   { revalidate: 3600, tags: [SITE_SETTINGS_CACHE_TAG] }
 );
 
-export const getMainNavigationLabels = cache(cachedMainNavigationLabels);
+export const getSiteSettings = cache(cachedSiteSettings);
+
+export async function getMainNavigationLabels(): Promise<MainNavigationLabels> {
+  const { shopLabel, artistsLabel } = await getSiteSettings();
+  return { shopLabel, artistsLabel };
+}
+
+export async function isSiteMaintenanceModeEnabled() {
+  return (await getSiteSettings()).maintenanceMode;
+}
 
 export async function getPrimaryNavigation() {
   const labels = await getMainNavigationLabels();
@@ -49,7 +63,7 @@ export async function getPrimaryNavigation() {
 }
 
 export async function saveMainNavigationLabels(input: MainNavigationLabels) {
-  const row = await queryRow<MainNavigationLabelsRow>(
+  const row = await queryRow<MainNavigationLabels>(
     `insert into site_settings (id, shop_label, artists_label)
      values (true, $1, $2)
      on conflict (id) do update
@@ -61,4 +75,18 @@ export async function saveMainNavigationLabels(input: MainNavigationLabels) {
 
   if (!row) throw new Error("Navigation labels could not be saved.");
   return row;
+}
+
+export async function saveSiteMaintenanceMode(maintenanceMode: boolean) {
+  const row = await queryRow<{ maintenanceMode: boolean }>(
+    `insert into site_settings (id, maintenance_mode)
+     values (true, $1)
+     on conflict (id) do update
+       set maintenance_mode = excluded.maintenance_mode
+     returning maintenance_mode as "maintenanceMode"`,
+    [maintenanceMode]
+  );
+
+  if (!row) throw new Error("Maintenance mode could not be saved.");
+  return row.maintenanceMode;
 }

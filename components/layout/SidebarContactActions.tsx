@@ -5,7 +5,11 @@ import { Check, LoaderCircle, MessageCircle } from "lucide-react";
 
 const WHATSAPP_URL = "http://wa.me/60176226280";
 
-export function SidebarContactActions() {
+type SidebarContactActionsProps = {
+  variant?: "sidebar" | "maintenance";
+};
+
+export function SidebarContactActions({ variant = "sidebar" }: SidebarContactActionsProps) {
   const emailInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -49,21 +53,26 @@ export function SidebarContactActions() {
     }
   }
 
+  const maintenance = variant === "maintenance";
+  const controlHeight = maintenance ? "items-maintenance-control" : "h-9";
+  const textSize = maintenance ? "items-maintenance-control-text" : "text-[8px]";
+  const actionWidth = maintenance ? "items-maintenance-control-action" : "w-9";
+
   return (
-    <div className="space-y-3 pt-4">
+    <div className={maintenance ? "items-maintenance-contact-actions" : "space-y-3 pt-4"}>
       <a
         href={WHATSAPP_URL}
         target="_blank"
         rel="noreferrer"
-        className="group flex h-9 w-full overflow-hidden border border-items-blue bg-items-surface text-[8px] font-black leading-none transition-colors hover:bg-items-blue hover:text-items-white"
+        className={`group flex ${controlHeight} w-full overflow-hidden border border-items-blue bg-items-surface ${textSize} font-black leading-none transition-colors hover:bg-items-blue hover:text-items-white`}
       >
         <span className="flex min-w-0 flex-1 items-center px-2.5">WHATSAPP CHAT SUPPORT</span>
-        <span className="flex w-9 shrink-0 items-center justify-center bg-items-blue text-items-white">
-          <MessageCircle aria-hidden className="h-5 w-5" strokeWidth={2.6} />
+        <span className={`flex ${actionWidth} shrink-0 items-center justify-center bg-items-blue text-items-white`}>
+          <MessageCircle aria-hidden className={maintenance ? "items-maintenance-whatsapp" : "h-5 w-5"} strokeWidth={2.6} />
         </span>
       </a>
 
-      <form onSubmit={subscribe} className="flex h-9 w-full overflow-hidden border border-items-blue bg-items-surface">
+      <form onSubmit={subscribe} className={`flex ${controlHeight} w-full overflow-hidden border border-items-blue bg-items-surface`}>
         <label className="sr-only" htmlFor="sidebar-newsletter-email">Email address for the ITEMS newsletter</label>
         <input
           ref={emailInputRef}
@@ -73,18 +82,18 @@ export function SidebarContactActions() {
           required
           disabled={submitting}
           placeholder="SUBSCRIBE TO OUR NEWSLETTER"
-          className="min-w-0 flex-1 bg-transparent px-2.5 text-[8px] font-black leading-none outline-none placeholder:text-items-blue/60 disabled:opacity-60"
+          className={`min-w-0 flex-1 bg-transparent px-2.5 ${textSize} font-black leading-none outline-none placeholder:text-items-blue/60 disabled:opacity-60`}
         />
         <button
           type="submit"
           aria-label="Subscribe to our newsletter"
           disabled={submitting}
-          className="relative flex w-9 shrink-0 items-center justify-center bg-items-blue text-items-white transition-colors hover:bg-items-blueHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-items-blue focus-visible:ring-offset-2 disabled:cursor-default disabled:hover:bg-items-blue"
+          className={`relative flex ${actionWidth} shrink-0 items-center justify-center bg-items-blue text-items-white transition-colors hover:bg-items-blueHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-items-blue focus-visible:ring-offset-2 disabled:cursor-default disabled:hover:bg-items-blue`}
         >
           {submitting ? (
             <LoaderCircle aria-hidden className="h-4 w-4 animate-spin" strokeWidth={2.6} />
           ) : (
-            <span aria-hidden className="items-plus-marker left-1/2 top-1/2 scale-[0.42] -translate-x-1/2 -translate-y-1/2 before:!bg-items-white after:!bg-items-white" />
+            <span aria-hidden className={maintenance ? "items-maintenance-plus left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 before:!bg-items-white after:!bg-items-white" : "items-plus-marker left-1/2 top-1/2 scale-[0.42] -translate-x-1/2 -translate-y-1/2 before:!bg-items-white after:!bg-items-white"} />
           )}
         </button>
       </form>

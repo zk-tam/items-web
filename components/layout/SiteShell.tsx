@@ -3,11 +3,13 @@ import { DesktopSidebar } from "@/components/layout/DesktopSidebar";
 import { DetailPageHeader } from "@/components/layout/DetailPageHeader";
 import { FooterLinks } from "@/components/layout/FooterLinks";
 import { MobileHeader } from "@/components/layout/MobileHeader";
+import { MaintenanceScreen } from "@/components/layout/MaintenanceScreen";
 import { SidebarContactActions } from "@/components/layout/SidebarContactActions";
 import { UtilityIcons } from "@/components/layout/UtilityIcons";
 import type { ArtistMenuItem, PrimaryRoute, ProductMenuItem } from "@/data/navigation";
 import { listArtists, listProducts } from "@/lib/db/items-repository";
-import { getPrimaryNavigation } from "@/lib/site-settings/repository";
+import { hasMaintenanceAccess } from "@/lib/auth/maintenance";
+import { getPrimaryNavigation, isSiteMaintenanceModeEnabled } from "@/lib/site-settings/repository";
 import { cn } from "@/lib/utils";
 
 type SiteShellProps = {
@@ -35,6 +37,10 @@ export async function SiteShell({
   theme = "light",
   contentClassName
 }: SiteShellProps) {
+  if (await isSiteMaintenanceModeEnabled() && !(await hasMaintenanceAccess())) {
+    return <MaintenanceScreen />;
+  }
+
   const [navigation, catalogMenus] = await Promise.all([
     getPrimaryNavigation(),
     detailHeader ? Promise.resolve(null) : Promise.all([listArtists(), listProducts()])

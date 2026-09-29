@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "Shipping & Returns"
 };
 
+export const dynamic = "force-dynamic";
+
 const sections = [
   {
     title: "Orders",
