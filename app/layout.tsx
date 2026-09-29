@@ -89,7 +89,7 @@ export default function RootLayout({
                 var storedTheme = window.localStorage.getItem("items-theme");
                 var theme = storedTheme === "dark" || storedTheme === "light"
                   ? storedTheme
-                  : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+                  : "light";
                 document.documentElement.dataset.theme = theme;
                 document.documentElement.style.colorScheme = theme;
               } catch (_) {}
