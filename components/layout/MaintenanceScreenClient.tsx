@@ -87,7 +87,7 @@ export function MaintenanceScreenClient() {
                   aria-describedby={error ? "maintenance-access-error" : undefined}
                   placeholder="ENTER ACCESS CODE"
                   disabled={submitting}
-                  className="min-w-0 flex-1 bg-items-surface px-2.5 items-maintenance-control-text font-black leading-none outline-none placeholder:text-items-blue/60 disabled:opacity-60"
+                  className="min-w-0 flex-1 bg-transparent px-2.5 text-items-blue items-maintenance-control-text font-black leading-none outline-none placeholder:text-items-blue/60 disabled:opacity-60"
                 />
                 <button type="submit" disabled={submitting} className="items-maintenance-access-submit" aria-label="Access website">
                   {submitting ? <LoaderCircle aria-hidden className="items-maintenance-access-loader animate-spin" strokeWidth={2.6} /> : "ENTER"}

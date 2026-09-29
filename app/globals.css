@@ -381,6 +381,13 @@ select {
     line-height: 1;
   }
 
+  .items-maintenance-access input:-webkit-autofill,
+  .items-maintenance-access input:-webkit-autofill:hover,
+  .items-maintenance-access input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--items-blue);
+    box-shadow: 0 0 0 1000px var(--items-surface) inset;
+  }
+
   .items-maintenance-access-loader {
     width: 2.2cqw;
     height: 2.2cqw;
