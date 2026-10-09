@@ -7,6 +7,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { ItemMediaUploader, type ItemMediaUploaderHandle } from "@/components/admin/ItemMediaUploader";
+import { CatalogVisibilitySwitch } from "@/components/admin/CatalogVisibilitySwitch";
 import { SeoFields } from "@/components/admin/SeoFields";
 import type { ItemMediaKind } from "@/lib/admin/item-media";
 import { siteDisplayHost } from "@/lib/site-url";
@@ -35,6 +36,7 @@ type ItemValues = {
   stockCount: number;
   orderMessage: string | null;
   isPublished: boolean;
+  archivedAt: Date | string | null;
   sortOrder: number | null;
 };
 
@@ -61,6 +63,11 @@ function asMoney(cents: number | null | undefined) {
 
 function isRedirectError(error: unknown) {
   return Boolean(error && typeof error === "object" && "digest" in error && typeof error.digest === "string" && error.digest.startsWith("NEXT_REDIRECT"));
+}
+
+function itemVisibility(item: ItemValues | undefined) {
+  if (item?.archivedAt) return "archived" as const;
+  return item?.isPublished === false ? "draft" as const : "published" as const;
 }
 
 type SortableArtistRowProps = {
@@ -173,7 +180,7 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
       </div>
       <label className="grid gap-1 font-bold">WhatsApp message<input name="orderMessage" defaultValue={item?.orderMessage ?? ""} className="border border-items-blue bg-transparent p-3" /></label>
       <ItemMediaUploader ref={mediaUploaderRef} existingMedia={existingMedia} />
-      <label className="flex items-center gap-2 font-bold"><input name="isPublished" type="checkbox" defaultChecked={item?.isPublished ?? true} /> Published</label>
+      <CatalogVisibilitySwitch value={itemVisibility(item)} />
       {submitError ? <p role="alert" className="border border-red-600 p-3 text-sm font-bold text-red-700">{submitError}</p> : null}
       <button type="submit" disabled={isSaving} className="w-fit bg-items-blue px-5 py-3 font-black text-items-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving item…" : "Save item"}</button>
     </form>

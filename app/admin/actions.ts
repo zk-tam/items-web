@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
-import { archiveArtist, archiveItem, createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveAdminArtistOrder, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
+import { createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveAdminArtistOrder, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type CatalogVisibility, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
 import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseOrderedIds, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
@@ -31,7 +31,7 @@ function parseArtistInput(formData: FormData, profileImagePath: string | null) {
     profileImagePath,
     profileImageAlt: optionalText(formData.get("profileImageAlt")),
     initiallyExpanded: isChecked(formData.get("initiallyExpanded")),
-    isPublished: isChecked(formData.get("isPublished")),
+    visibility: parseCatalogVisibility(formData.get("visibility")),
     sortOrder: parseOptionalNonNegativeInteger(formData.get("sortOrder"), "Sort order"),
     links: parseLinks(formData.get("socialLinks"))
   };
@@ -59,9 +59,14 @@ function parseItemInput(formData: FormData) {
     usdPriceCents,
     stockCount: parseNonNegativeInteger(formData.get("stockCount"), "Stock count"),
     orderMessage: optionalText(formData.get("orderMessage")),
-    isPublished: isChecked(formData.get("isPublished")),
+    visibility: parseCatalogVisibility(formData.get("visibility")),
     sortOrder: parseOptionalNonNegativeInteger(formData.get("sortOrder"), "Sort order")
   };
+}
+
+function parseCatalogVisibility(value: FormDataEntryValue | null): CatalogVisibility {
+  if (value === "archived" || value === "draft" || value === "published") return value;
+  throw new Error("Choose a valid visibility state.");
 }
 
 function revalidateCatalog() {
@@ -159,13 +164,6 @@ export async function updateArtistAction(id: string, formData: FormData) {
   redirect("/admin/artists");
 }
 
-export async function archiveArtistAction(id: string) {
-  await requireAdmin();
-  await archiveArtist(id);
-  revalidateCatalog();
-  redirect("/admin/artists");
-}
-
 export async function updateArtistOrderAction(formData: FormData) {
   await requireAdmin();
   await saveAdminArtistOrder(parseOrderedIds(formData.get("artistIds"), "Artists", 500));
@@ -244,13 +242,6 @@ export async function discardUnattachedCatalogMediaAction(area: CatalogMediaArea
   const unattachedPaths = candidates.filter((path) => !attachedPaths.has(path));
   if (unattachedPaths.length === 0) return;
   await Promise.all(unattachedPaths.map((path) => getStorageProvider().remove(path).catch(() => undefined)));
-}
-
-export async function archiveItemAction(id: string) {
-  await requireAdmin();
-  await archiveItem(id);
-  revalidateCatalog();
-  redirect("/admin/items");
 }
 
 function parseOrderStatus(value: FormDataEntryValue | null): OrderStatus {

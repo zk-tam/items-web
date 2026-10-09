@@ -36,7 +36,7 @@ function SortableArtist({ artist, position }: SortableArtistProps) {
         <p className="truncate font-black">{artist.name}</p>
         <p className="truncate text-sm font-medium">{artist.role || "Artist"}</p>
       </div>
-      <span className={`shrink-0 border px-2 py-1 text-xs font-black ${artist.isPublished ? "border-items-blue text-items-blue" : "border-current opacity-60"}`}>{artist.isPublished ? "Published" : "Hidden"}</span>
+      <span className={`shrink-0 border px-2 py-1 text-xs font-black ${artist.isPublished ? "border-items-blue text-items-blue" : "border-current opacity-60"}`}>{artist.isPublished ? "Published" : "Draft"}</span>
     </li>
   );
 }

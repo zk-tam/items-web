@@ -54,6 +54,7 @@ export type AdminItem = {
 
 export type AdminArtistOption = Pick<AdminArtist, "id" | "name" | "archivedAt">;
 
+export type CatalogVisibility = "archived" | "draft" | "published";
 export type OrderStatus = "draft" | "awaiting_payment" | "processing" | "shipped" | "completed" | "cancelled";
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
@@ -109,12 +110,14 @@ export type DocumentSnapshot = {
   totalCents: number;
 };
 
-export type ArtistInput = Omit<AdminArtist, "id" | "archivedAt" | "itemCount" | "links" | "media"> & {
+export type ArtistInput = Omit<AdminArtist, "id" | "isPublished" | "archivedAt" | "itemCount" | "links" | "media"> & {
+  visibility: CatalogVisibility;
   links: Array<{ label: string; url: string }>;
 };
 
-export type ItemInput = Omit<AdminItem, "id" | "artistId" | "artistName" | "artists" | "archivedAt" | "media"> & {
+export type ItemInput = Omit<AdminItem, "id" | "artistId" | "artistName" | "artists" | "isPublished" | "archivedAt" | "media"> & {
   artistIds: string[];
+  visibility: CatalogVisibility;
 };
 
 const itemArtistsSelect = `
@@ -232,18 +235,23 @@ export async function getAdminArtist(id: string) {
 }
 
 export async function saveArtist(input: ArtistInput, id?: string) {
+  const isPublished = input.visibility === "published";
+  const isArchived = input.visibility === "archived";
+
   return withTransaction(async (client) => {
     const artist = id
       ? await client.query<{ id: string }>(
           `update artists set slug = $2, name = $3, role = $4, description = $5, email = $6, website_url = $7,
-             profile_image_path = $8, profile_image_alt = $9, initially_expanded = $10, is_published = $11, sort_order = $12, seo_title = $13, seo_description = $14
+             profile_image_path = $8, profile_image_alt = $9, initially_expanded = $10, is_published = $11,
+             archived_at = case when $12 then coalesce(archived_at, now()) else null end,
+             sort_order = $13, seo_title = $14, seo_description = $15
            where id = $1 returning id`,
-          [id, input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+          [id, input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
         )
       : await client.query<{ id: string }>(
-          `insert into artists (slug, name, role, description, email, website_url, profile_image_path, profile_image_alt, initially_expanded, is_published, sort_order, seo_title, seo_description)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
-          [input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+          `insert into artists (slug, name, role, description, email, website_url, profile_image_path, profile_image_alt, initially_expanded, is_published, archived_at, sort_order, seo_title, seo_description)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, case when $11 then now() else null end, $12, $13, $14) returning id`,
+          [input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
         );
 
     const artistId = artist.rows[0]?.id;
@@ -254,10 +262,6 @@ export async function saveArtist(input: ArtistInput, id?: string) {
     }
     return artistId;
   });
-}
-
-export async function archiveArtist(id: string) {
-  await queryRow(`update artists set archived_at = now(), is_published = false where id = $1 returning id`, [id]);
 }
 
 export async function listAdminItems() {
@@ -297,6 +301,8 @@ export async function saveItem(input: ItemInput, id?: string) {
 
   const legacyPriceCents = input.myrPriceCents ?? input.usdPriceCents ?? 0;
   const legacyCurrency = input.myrPriceCents === null ? "USD" : "MYR";
+  const isPublished = input.visibility === "published";
+  const isArchived = input.visibility === "archived";
   return withTransaction(async (client) => {
     const selectedArtists = await client.query<{ id: string }>(
       `select id from artists where id = any($1::uuid[]) and archived_at is null`,
@@ -309,14 +315,16 @@ export async function saveItem(input: ItemInput, id?: string) {
     const result = id
       ? await client.query<{ id: string }>(
           `update items set artist_id = $2, slug = $3, name = $4, description = $5, short_description = $6, preview = $7, specs = $8, size = $9, category = $10,
-                myr_price_cents = $11, usd_price_cents = $12, price_cents = $13, currency = $14, stock_count = $15, order_message = $16, is_published = $17, sort_order = $18, seo_title = $19, seo_description = $20
+                myr_price_cents = $11, usd_price_cents = $12, price_cents = $13, currency = $14, stock_count = $15, order_message = $16,
+                is_published = $17, archived_at = case when $18 then coalesce(archived_at, now()) else null end,
+                sort_order = $19, seo_title = $20, seo_description = $21
                 where id = $1 returning id`,
-          [id, artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+          [id, artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
         )
       : await client.query<{ id: string }>(
-          `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, sort_order, seo_title, seo_description)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id`,
-          [artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, input.isPublished, input.sortOrder, input.seoTitle, input.seoDescription]
+          `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, archived_at, sort_order, seo_title, seo_description)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, case when $18 then now() else null end, $19, $20, $21) returning id`,
+          [artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
         );
     const itemId = result.rows[0]?.id;
     if (!itemId) throw new Error("Item could not be saved.");
@@ -436,10 +444,6 @@ export async function listAttachedArtistMediaPaths(paths: string[]) {
     `select storage_path as "storagePath" from artist_media where storage_path = any($1::text[])`,
     [paths]
   )) ?? []).map((row) => row.storagePath);
-}
-
-export async function archiveItem(id: string) {
-  await queryRow(`update items set archived_at = now(), is_published = false where id = $1 returning id`, [id]);
 }
 
 export type AdminOrderSort = "newest" | "oldest" | "updated";

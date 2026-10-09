@@ -52,8 +52,8 @@ export function ArtistsManagement({ artists, orderSaved, updateOrderAction }: Ar
       ) : (
         <div className="mt-8 overflow-x-auto border border-items-blue">
           <table className="w-full min-w-[700px] text-left">
-            <thead className="border-b border-items-blue text-sm uppercase"><tr><th className="p-3">Artist</th><th className="p-3">Items</th><th className="p-3">Published</th><th className="p-3">State</th><th className="p-3" /></tr></thead>
-            <tbody>{artists.map((artist) => <tr key={artist.id} className="border-b border-items-blue last:border-0"><td className="p-3 font-bold">{artist.name}<span className="ml-2 text-xs font-normal">/{artist.slug}</span></td><td className="p-3">{artist.itemCount}</td><td className="p-3">{artist.isPublished ? "Yes" : "No"}</td><td className="p-3">{artist.archivedAt ? "Archived" : "Active"}</td><td className="p-3 text-right"><Link href={`/admin/artists/${artist.id}`} className="font-black underline">Edit</Link></td></tr>)}</tbody>
+            <thead className="border-b border-items-blue text-sm uppercase"><tr><th className="p-3">Artist</th><th className="p-3">Items</th><th className="p-3">State</th><th className="p-3" /></tr></thead>
+            <tbody>{artists.map((artist) => <tr key={artist.id} className="border-b border-items-blue last:border-0"><td className="p-3 font-bold">{artist.name}<span className="ml-2 text-xs font-normal">/{artist.slug}</span></td><td className="p-3">{artist.itemCount}</td><td className="p-3">{artist.archivedAt ? "Archived" : artist.isPublished ? "Published" : "Draft"}</td><td className="p-3 text-right"><Link href={`/admin/artists/${artist.id}`} className="font-black underline">Edit</Link></td></tr>)}</tbody>
           </table>
         </div>
       )}

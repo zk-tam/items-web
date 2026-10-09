@@ -4,6 +4,7 @@ import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, RotateCcw, Trash2 } from "lucide-react";
 import { ItemMediaUploader, type ItemMediaUploaderHandle } from "@/components/admin/ItemMediaUploader";
+import { CatalogVisibilitySwitch } from "@/components/admin/CatalogVisibilitySwitch";
 import { SeoFields } from "@/components/admin/SeoFields";
 import type { ItemMediaKind } from "@/lib/admin/item-media";
 import type { AdminArtist } from "@/lib/admin/repository";
@@ -22,6 +23,11 @@ function value(value: string | number | null | undefined) {
 
 function isRedirectError(error: unknown) {
   return Boolean(error && typeof error === "object" && "digest" in error && typeof error.digest === "string" && error.digest.startsWith("NEXT_REDIRECT"));
+}
+
+function artistVisibility(artist: AdminArtist | undefined) {
+  if (artist?.archivedAt) return "archived" as const;
+  return artist?.isPublished === false ? "draft" as const : "published" as const;
 }
 
 export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [], action }: ArtistFormProps) {
@@ -179,11 +185,11 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
         <label className="grid gap-1 font-bold">Profile-image alt text<input name="profileImageAlt" defaultValue={value(artist?.profileImageAlt)} className="border border-items-blue bg-transparent p-3" /></label>
       </div>
       <ItemMediaUploader ref={mediaUploaderRef} area="artists" existingMedia={existingMedia} />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <p className="text-sm font-medium md:col-span-2">Artist display order is managed from Arrange artists on the Artists page.</p>
-        <label className="flex items-center gap-2 font-bold"><input name="isPublished" type="checkbox" defaultChecked={artist?.isPublished ?? true} /> Published</label>
         <label className="flex items-center gap-2 font-bold"><input name="initiallyExpanded" type="checkbox" defaultChecked={artist?.initiallyExpanded ?? false} /> Expand bio</label>
       </div>
+      <CatalogVisibilitySwitch value={artistVisibility(artist)} />
       {submitError ? <p role="alert" className="border border-red-600 p-3 text-sm font-bold text-red-700">{submitError}</p> : null}
       <button type="submit" disabled={isSaving} className="w-fit bg-items-blue px-5 py-3 font-black text-items-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving artist…" : "Save artist"}</button>
     </form>
