@@ -168,6 +168,25 @@ const itemMediaSelect = `
   ) as media
 `;
 
+const itemThumbnailSelect = `
+  (
+    select media.storage_path
+    from item_media media
+    where media.item_id = item.id and media.media_type = 'image'
+    order by media.sort_order asc
+    limit 1
+  ) as "thumbnailPath"
+`;
+
+async function nextActiveSortOrder(client: PoolClient, table: "artists" | "items") {
+  // Lock the active list while choosing a position so two concurrent restores
+  // cannot receive the same position.
+  const activeRows = await client.query<{ sortOrder: number | null }>(
+    `select sort_order as "sortOrder" from ${table} where archived_at is null order by id for update`
+  );
+  return Math.max(...activeRows.rows.map((row) => row.sortOrder ?? -1), -1) + 1;
+}
+
 export async function listAdminArtists() {
   return (await queryRows<AdminArtist>(
     `select artist.id, artist.slug, artist.name, artist.role, artist.description, artist.email,
@@ -213,6 +232,28 @@ export async function saveAdminArtistOrder(artistIds: string[]) {
   });
 }
 
+export async function saveAdminItemOrder(itemIds: string[]) {
+  return withTransaction(async (client) => {
+    const activeItems = await client.query<{ id: string }>(
+      `select id from items where archived_at is null for update`
+    );
+    const activeIds = new Set(activeItems.rows.map((item) => item.id));
+
+    if (activeIds.size !== itemIds.length || itemIds.some((id) => !activeIds.has(id))) {
+      throw new Error("The item list changed. Refresh the page and try again.");
+    }
+
+    await client.query(
+      `update items item
+       set sort_order = (ordered.position - 1)::integer
+       from unnest($1::uuid[]) with ordinality as ordered(id, position)
+       where item.id = ordered.id
+         and item.sort_order is distinct from (ordered.position - 1)::integer`,
+      [itemIds]
+    );
+  });
+}
+
 export async function getAdminArtist(id: string) {
   const artist = await queryRow<AdminArtist>(
     `select id, slug, name, role, description, email, website_url as "websiteUrl", seo_title as "seoTitle", seo_description as "seoDescription",
@@ -239,6 +280,18 @@ export async function saveArtist(input: ArtistInput, id?: string) {
   const isArchived = input.visibility === "archived";
 
   return withTransaction(async (client) => {
+    let sortOrder = input.sortOrder;
+    if (id) {
+      const current = await client.query<{ archivedAt: Date | null }>(
+        `select archived_at as "archivedAt" from artists where id = $1 for update`,
+        [id]
+      );
+      if (!current.rows[0]) throw new Error("Artist was not found.");
+      if (current.rows[0].archivedAt && !isArchived) {
+        sortOrder = await nextActiveSortOrder(client, "artists");
+      }
+    }
+
     const artist = id
       ? await client.query<{ id: string }>(
           `update artists set slug = $2, name = $3, role = $4, description = $5, email = $6, website_url = $7,
@@ -246,12 +299,12 @@ export async function saveArtist(input: ArtistInput, id?: string) {
              archived_at = case when $12 then coalesce(archived_at, now()) else null end,
              sort_order = $13, seo_title = $14, seo_description = $15
            where id = $1 returning id`,
-          [id, input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
+          [id, input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, isPublished, isArchived, sortOrder, input.seoTitle, input.seoDescription]
         )
       : await client.query<{ id: string }>(
           `insert into artists (slug, name, role, description, email, website_url, profile_image_path, profile_image_alt, initially_expanded, is_published, archived_at, sort_order, seo_title, seo_description)
            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, case when $11 then now() else null end, $12, $13, $14) returning id`,
-          [input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
+          [input.slug, input.name, input.role, input.description, input.email, input.websiteUrl, input.profileImagePath, input.profileImageAlt, input.initiallyExpanded, isPublished, isArchived, sortOrder, input.seoTitle, input.seoDescription]
         );
 
     const artistId = artist.rows[0]?.id;
@@ -265,10 +318,10 @@ export async function saveArtist(input: ArtistInput, id?: string) {
 }
 
 export async function listAdminItems() {
-  return (await queryRows<AdminItem>(
+  return (await queryRows<AdminItem & { thumbnailPath: string | null }>(
     `select item.id, item.artist_id as "artistId", ${itemArtistNameSelect}, ${itemArtistsSelect}, item.slug, item.name, item.description, item.short_description as "shortDescription", item.preview, item.specs,
             item.size, item.category, item.seo_title as "seoTitle", item.seo_description as "seoDescription", item.myr_price_cents as "myrPriceCents", item.usd_price_cents as "usdPriceCents", item.stock_count as "stockCount", item.order_message as "orderMessage",
-            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", '[]'::jsonb as media
+            item.is_published as "isPublished", item.archived_at as "archivedAt", item.sort_order as "sortOrder", ${itemThumbnailSelect}, '[]'::jsonb as media
      from items item join artists artist on artist.id = item.artist_id
      order by item.archived_at nulls first, item.sort_order asc nulls last, item.created_at desc, item.name asc`
   )) ?? [];
@@ -312,6 +365,18 @@ export async function saveItem(input: ItemInput, id?: string) {
       throw new Error("One or more selected artists are unavailable.");
     }
 
+    let sortOrder = input.sortOrder;
+    if (id) {
+      const current = await client.query<{ archivedAt: Date | null }>(
+        `select archived_at as "archivedAt" from items where id = $1 for update`,
+        [id]
+      );
+      if (!current.rows[0]) throw new Error("Item was not found.");
+      if (current.rows[0].archivedAt && !isArchived) {
+        sortOrder = await nextActiveSortOrder(client, "items");
+      }
+    }
+
     const result = id
       ? await client.query<{ id: string }>(
           `update items set artist_id = $2, slug = $3, name = $4, description = $5, short_description = $6, preview = $7, specs = $8, size = $9, category = $10,
@@ -319,12 +384,12 @@ export async function saveItem(input: ItemInput, id?: string) {
                 is_published = $17, archived_at = case when $18 then coalesce(archived_at, now()) else null end,
                 sort_order = $19, seo_title = $20, seo_description = $21
                 where id = $1 returning id`,
-          [id, artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
+          [id, artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, sortOrder, input.seoTitle, input.seoDescription]
         )
       : await client.query<{ id: string }>(
           `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, archived_at, sort_order, seo_title, seo_description)
                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, case when $18 then now() else null end, $19, $20, $21) returning id`,
-          [artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, input.sortOrder, input.seoTitle, input.seoDescription]
+          [artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, sortOrder, input.seoTitle, input.seoDescription]
         );
     const itemId = result.rows[0]?.id;
     if (!itemId) throw new Error("Item could not be saved.");

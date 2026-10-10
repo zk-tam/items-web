@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
-import { createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveAdminArtistOrder, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type CatalogVisibility, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
+import { createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveAdminArtistOrder, saveAdminItemOrder, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type CatalogVisibility, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
 import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseOrderedIds, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
@@ -169,6 +169,13 @@ export async function updateArtistOrderAction(formData: FormData) {
   await saveAdminArtistOrder(parseOrderedIds(formData.get("artistIds"), "Artists", 500));
   revalidateCatalog();
   redirect("/admin/artists?order=saved");
+}
+
+export async function updateItemOrderAction(formData: FormData) {
+  await requireAdmin();
+  await saveAdminItemOrder(parseOrderedIds(formData.get("itemIds"), "Items", 500));
+  revalidateCatalog();
+  redirect("/admin/items?order=saved");
 }
 
 async function synchronizeItemMediaFromForm(itemId: string, formData: FormData) {
