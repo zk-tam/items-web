@@ -700,13 +700,41 @@ function sellerDetails() {
   };
 }
 
+function orderDocumentSnapshot(
+  order: AdminOrder,
+  lines: OrderLine[],
+  kind: "invoice" | "receipt",
+  documentNumber: string,
+  issuedAt: Date
+): DocumentSnapshot {
+  return {
+    kind,
+    documentNumber,
+    // Keep the original issue date while refreshing every order-derived field.
+    generatedAt: issuedAt.toISOString(),
+    seller: sellerDetails(),
+    customer: {
+      name: order.customerName,
+      email: order.customerEmail ?? undefined,
+      phone: order.customerPhone ?? undefined,
+      shippingAddress: order.shippingAddress ?? undefined
+    },
+    orderNumber: order.orderNumber,
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus,
+    createdAt: order.createdAt.toISOString(),
+    currency: "MYR",
+    lines: lines.map((line) => ({ itemName: line.itemName, artistName: line.artistName, thumbnailPath: line.thumbnailPath ?? undefined, quantity: line.quantity, unitPriceCents: line.unitPriceCents })),
+    totalCents: lines.reduce((total, line) => total + line.quantity * line.unitPriceCents, 0)
+  };
+}
+
 export async function getOrCreateOrderDocument(orderId: string, kind: "invoice" | "receipt") {
   return withTransaction(async (client) => {
     const existing = await client.query<OrderDocument>(
       `select id, kind, document_number as "documentNumber", snapshot, generated_at as "generatedAt"
        from order_documents where order_id = $1 and kind = $2 for update`, [orderId, kind]
     );
-    if (existing.rows[0]) return existing.rows[0];
 
     const orderResult = await client.query<AdminOrder>(
       `select id, order_number as "orderNumber", public_token as "publicToken", customer_name as "customerName", customer_email as "customerEmail", customer_phone as "customerPhone",
@@ -715,33 +743,28 @@ export async function getOrCreateOrderDocument(orderId: string, kind: "invoice" 
        from orders where id = $1 for update`, [orderId]
     );
     const order = orderResult.rows[0];
-    if (!order || order.status === "cancelled") throw new Error("Documents cannot be generated for this order.");
-    if (kind === "receipt" && order.paymentStatus !== "paid") throw new Error("A receipt can only be generated after payment.");
+    const existingDocument = existing.rows[0];
+    if (!order || (!existingDocument && order.status === "cancelled")) throw new Error("Documents cannot be generated for this order.");
+    if (!existingDocument && kind === "receipt" && order.paymentStatus !== "paid") throw new Error("A receipt can only be generated after payment.");
     const lines = await client.query<OrderLine>(
       `select id, item_id as "itemId", item_name as "itemName", artist_name as "artistName", thumbnail_path as "thumbnailPath", quantity, unit_price_cents as "unitPriceCents"
        from order_lines where order_id = $1 order by created_at`, [orderId]
     );
+
+    if (existingDocument) {
+      const snapshot = orderDocumentSnapshot(order, lines.rows, kind, existingDocument.documentNumber, existingDocument.generatedAt);
+      const refreshed = await client.query<OrderDocument>(
+        `update order_documents set snapshot = $2::jsonb where id = $1
+         returning id, kind, document_number as "documentNumber", snapshot, generated_at as "generatedAt"`,
+        [existingDocument.id, JSON.stringify(snapshot)]
+      );
+      return refreshed.rows[0] as OrderDocument;
+    }
+
     const sequence = await client.query<{ value: string }>(`select nextval($1::regclass)::text as value`, [kind === "invoice" ? "invoice_number_seq" : "receipt_number_seq"]);
     const documentNumber = `${kind === "invoice" ? "INV" : "RCT"}-${String(sequence.rows[0]?.value ?? "0").padStart(6, "0")}`;
-    const snapshot: DocumentSnapshot = {
-      kind,
-      documentNumber,
-      generatedAt: new Date().toISOString(),
-      seller: sellerDetails(),
-      customer: {
-        name: order.customerName,
-        email: order.customerEmail ?? undefined,
-        phone: order.customerPhone ?? undefined,
-        shippingAddress: order.shippingAddress ?? undefined
-      },
-      orderNumber: order.orderNumber,
-      orderStatus: order.status,
-      paymentStatus: order.paymentStatus,
-      createdAt: order.createdAt.toISOString(),
-      currency: "MYR",
-      lines: lines.rows.map((line) => ({ itemName: line.itemName, artistName: line.artistName, thumbnailPath: line.thumbnailPath ?? undefined, quantity: line.quantity, unitPriceCents: line.unitPriceCents })),
-      totalCents: lines.rows.reduce((total, line) => total + line.quantity * line.unitPriceCents, 0)
-    };
+    const issuedAt = new Date();
+    const snapshot = orderDocumentSnapshot(order, lines.rows, kind, documentNumber, issuedAt);
     const inserted = await client.query<OrderDocument>(
       `insert into order_documents (order_id, kind, document_number, snapshot)
        values ($1, $2, $3, $4::jsonb)
@@ -755,6 +778,14 @@ export async function getOrCreateOrderDocument(orderId: string, kind: "invoice" 
        from order_documents where order_id = $1 and kind = $2`,
       [orderId, kind]
     );
-    return racedDocument.rows[0] as OrderDocument;
+    const raced = racedDocument.rows[0];
+    if (!raced) throw new Error("Document could not be generated.");
+    const refreshedSnapshot = orderDocumentSnapshot(order, lines.rows, kind, raced.documentNumber, raced.generatedAt);
+    const refreshed = await client.query<OrderDocument>(
+      `update order_documents set snapshot = $2::jsonb where id = $1
+       returning id, kind, document_number as "documentNumber", snapshot, generated_at as "generatedAt"`,
+      [raced.id, JSON.stringify(refreshedSnapshot)]
+    );
+    return refreshed.rows[0] as OrderDocument;
   });
 }
