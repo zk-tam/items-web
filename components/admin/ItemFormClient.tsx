@@ -10,6 +10,7 @@ import { ItemMediaUploader, type ItemMediaUploaderHandle } from "@/components/ad
 import { CatalogVisibilitySwitch } from "@/components/admin/CatalogVisibilitySwitch";
 import { SeoFields } from "@/components/admin/SeoFields";
 import type { ItemMediaKind } from "@/lib/admin/item-media";
+import type { CatalogSaveFailure } from "@/lib/admin/catalog-save-result";
 import { siteDisplayHost } from "@/lib/site-url";
 
 type ArtistOption = {
@@ -54,7 +55,7 @@ type ItemFormClientProps = {
   item?: ItemValues;
   artists: ArtistOption[];
   existingMedia: ExistingMedia[];
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<CatalogSaveFailure>;
 };
 
 function asMoney(cents: number | null | undefined) {
@@ -136,9 +137,14 @@ export function ItemFormClient({ item, artists, existingMedia, action }: ItemFor
       const mediaOrder = await mediaUploaderRef.current?.prepareForSubmission();
       const formData = new FormData(form);
       if (mediaOrder !== null && mediaOrder !== undefined) formData.set("mediaOrder", mediaOrder);
-      await action(formData);
+      const result = await action(formData);
+      if (result.error) {
+        await mediaUploaderRef.current?.discardUploadedMedia().catch(() => undefined);
+        setSubmitError(result.error);
+      }
     } catch (error) {
       if (isRedirectError(error)) return;
+      await mediaUploaderRef.current?.discardUploadedMedia().catch(() => undefined);
       setSubmitError(error instanceof Error ? error.message : "Item could not be saved. Please try again.");
     } finally {
       setIsSaving(false);

@@ -7,6 +7,7 @@ import { ItemMediaUploader, type ItemMediaUploaderHandle } from "@/components/ad
 import { CatalogVisibilitySwitch } from "@/components/admin/CatalogVisibilitySwitch";
 import { SeoFields } from "@/components/admin/SeoFields";
 import type { ItemMediaKind } from "@/lib/admin/item-media";
+import type { CatalogSaveFailure } from "@/lib/admin/catalog-save-result";
 import type { AdminArtist } from "@/lib/admin/repository";
 import { siteDisplayHost } from "@/lib/site-url";
 
@@ -14,7 +15,7 @@ type ArtistFormProps = {
   artist?: AdminArtist;
   profileImageUrl?: string | null;
   existingMedia?: Array<{ id: string; storagePath: string; altText: string | null; mediaType: ItemMediaKind; mimeType: string; sortOrder: number; publicUrl: string }>;
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<CatalogSaveFailure>;
 };
 
 function value(value: string | number | null | undefined) {
@@ -116,7 +117,11 @@ export function ArtistForm({ artist, profileImageUrl = null, existingMedia = [],
       const mediaOrder = await mediaUploaderRef.current?.prepareForSubmission();
       const formData = new FormData(form);
       if (mediaOrder !== null && mediaOrder !== undefined) formData.set("artistMediaOrder", mediaOrder);
-      await action(formData);
+      const result = await action(formData);
+      if (result.error) {
+        await mediaUploaderRef.current?.discardUploadedMedia().catch(() => undefined);
+        setSubmitError(result.error);
+      }
     } catch (error) {
       if (isRedirectError(error)) return;
       await mediaUploaderRef.current?.discardUploadedMedia().catch(() => undefined);

@@ -2,9 +2,11 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { authenticateAdmin, createAdminSession, requireAdmin, revokeCurrentAdminSession } from "@/lib/auth/admin";
 import { createOrder, deleteDraftOrder, listAttachedArtistMediaPaths, listAttachedItemMediaPaths, saveAdminArtistOrder, saveAdminItemOrder, saveArtist, saveItem, synchronizeArtistMedia, synchronizeItemMedia, type CatalogVisibility, type OrderStatus, type PaymentStatus, updateOrder } from "@/lib/admin/repository";
 import { isDirectCatalogMediaPath, MAX_ITEM_MEDIA, type CatalogMediaArea, type ItemMediaUploadRequest, validateItemMediaUploadRequest } from "@/lib/admin/item-media";
+import { catalogSaveErrorMessage, type CatalogSaveFailure } from "@/lib/admin/catalog-save-result";
 import { isChecked, optionalText, parseArtistMediaOrder, parseItemMediaOrder, parseLinks, parseLines, parseNonNegativeInteger, parseOptionalNonNegativeInteger, parseOptionalPriceCents, parseOptionalUrl, parseOrderedIds, parseSeoDescription, parseSeoTitle, parseSlug, requiredText } from "@/lib/admin/validation";
 import { getStorageProvider } from "@/lib/storage/supabase-storage";
 import { CATALOG_CACHE_TAG } from "@/lib/db/items-repository";
@@ -77,6 +79,20 @@ function revalidateCatalog() {
   revalidatePath("/artists/[slug]", "page");
 }
 
+function catalogSaveFailure(error: unknown, entity: "artist" | "item"): CatalogSaveFailure {
+  const referenceId = randomUUID();
+  console.error(`Admin ${entity} save failed [${referenceId}]`, error);
+
+  const message = catalogSaveErrorMessage(error, entity);
+  return message
+    ? { error: message, errorId: Date.now() }
+    : {
+        error: `The ${entity} could not be saved. Please try again or contact support with reference ${referenceId}.`,
+        errorId: Date.now(),
+        referenceId
+      };
+}
+
 function parseMainNavigationLabel(value: FormDataEntryValue | null, label: string) {
   const text = requiredText(value, label);
   if (text.length > MAIN_NAVIGATION_LABEL_MAX_LENGTH) {
@@ -123,37 +139,43 @@ export async function logoutAction() {
   redirect("/admin/login");
 }
 
-export async function createArtistAction(formData: FormData) {
+export async function createArtistAction(formData: FormData): Promise<CatalogSaveFailure> {
   await requireAdmin();
   let imagePath: string | null = null;
   const file = asOptionalFile(formData.get("profileImage"));
-  const storage = file ? getStorageProvider() : null;
-  if (file) imagePath = (await storage!.uploadImage("artists", file)).path;
-  let artistId: string;
+  let storage: ReturnType<typeof getStorageProvider> | null = null;
+  let artistId: string | null = null;
   try {
+    if (file) {
+      storage = getStorageProvider();
+      imagePath = (await storage.uploadImage("artists", file)).path;
+    }
     artistId = await saveArtist(parseArtistInput(formData, imagePath));
     await synchronizeArtistMediaFromForm(artistId, formData);
   } catch (error) {
     if (imagePath) await storage?.remove(imagePath).catch(() => undefined);
-    throw error;
+    return catalogSaveFailure(error, "artist");
   }
   revalidateCatalog();
   redirect(`/admin/artists/${artistId}`);
 }
 
-export async function updateArtistAction(id: string, formData: FormData) {
+export async function updateArtistAction(id: string, formData: FormData): Promise<CatalogSaveFailure> {
   await requireAdmin();
   const previousImagePath = optionalText(formData.get("previousProfileImagePath"));
   let imagePath = optionalText(formData.get("existingProfileImagePath"));
   const file = asOptionalFile(formData.get("profileImage"));
-  const storage = file || (isManagedStoragePath(previousImagePath) && previousImagePath !== imagePath) ? getStorageProvider() : null;
-  if (file) imagePath = (await storage!.uploadImage("artists", file)).path;
+  let storage: ReturnType<typeof getStorageProvider> | null = null;
   try {
+    if (file || (isManagedStoragePath(previousImagePath) && previousImagePath !== imagePath)) {
+      storage = getStorageProvider();
+    }
+    if (file) imagePath = (await storage!.uploadImage("artists", file)).path;
     await saveArtist(parseArtistInput(formData, imagePath), id);
     await synchronizeArtistMediaFromForm(id, formData);
   } catch (error) {
     if (file && imagePath) await storage?.remove(imagePath).catch(() => undefined);
-    throw error;
+    return catalogSaveFailure(error, "artist");
   }
   if (isManagedStoragePath(previousImagePath) && previousImagePath !== imagePath) {
     // The catalog record is already correct; avoid reporting a failed save if
@@ -212,18 +234,26 @@ async function synchronizeArtistMediaFromForm(artistId: string, formData: FormDa
   }
 }
 
-export async function createItemAction(formData: FormData) {
+export async function createItemAction(formData: FormData): Promise<CatalogSaveFailure> {
   await requireAdmin();
-  const itemId = await saveItem(parseItemInput(formData));
-  await synchronizeItemMediaFromForm(itemId, formData);
+  try {
+    const itemId = await saveItem(parseItemInput(formData));
+    await synchronizeItemMediaFromForm(itemId, formData);
+  } catch (error) {
+    return catalogSaveFailure(error, "item");
+  }
   revalidateCatalog();
   redirect("/admin/items");
 }
 
-export async function updateItemAction(id: string, formData: FormData) {
+export async function updateItemAction(id: string, formData: FormData): Promise<CatalogSaveFailure> {
   await requireAdmin();
-  await saveItem(parseItemInput(formData), id);
-  await synchronizeItemMediaFromForm(id, formData);
+  try {
+    await saveItem(parseItemInput(formData), id);
+    await synchronizeItemMediaFromForm(id, formData);
+  } catch (error) {
+    return catalogSaveFailure(error, "item");
+  }
   revalidateCatalog();
   redirect("/admin/items");
 }

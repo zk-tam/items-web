@@ -154,6 +154,7 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
   const inputId = `${area}-media`;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewUrlsRef = useRef(new Set<string>());
+  const temporaryPathsRef = useRef(new Set<string>());
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sensors = useSensors(
@@ -246,7 +247,11 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
     if (removed.kind === "new") {
       URL.revokeObjectURL(removed.src);
       previewUrlsRef.current.delete(removed.src);
-      if (removed.storagePath) void discardUnattachedCatalogMediaAction(area, [removed.storagePath]).catch(() => undefined);
+      const temporaryPath = removed.storagePath ?? removed.uploadTarget?.path;
+      if (temporaryPath) {
+        temporaryPathsRef.current.delete(temporaryPath);
+        void discardUnattachedCatalogMediaAction(area, [temporaryPath]).catch(() => undefined);
+      }
     }
     setEntries((current) => current.filter((_, entryIndex) => entryIndex !== index));
   }
@@ -268,7 +273,11 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
       if (unsignedEntries.length > 0) {
         const signedUploads = await requestCatalogMediaUploadAction(area, unsignedEntries.map((entry) => ({ name: entry.file.name, mimeType: entry.mimeType, size: entry.file.size })));
         if (signedUploads.length !== unsignedEntries.length) throw new Error("Some media files could not be authorized for upload.");
-        for (const [index, entry] of unsignedEntries.entries()) targetsByToken.set(entry.token, signedUploads[index]);
+        for (const [index, entry] of unsignedEntries.entries()) {
+          const target = signedUploads[index];
+          targetsByToken.set(entry.token, target);
+          temporaryPathsRef.current.add(target.path);
+        }
       }
 
       const preparedEntries = snapshot.map((entry) => entry.kind === "new" && !entry.storagePath
@@ -305,8 +314,23 @@ export const ItemMediaUploader = forwardRef<ItemMediaUploaderHandle, ItemMediaUp
   }, [area, entries, existingMedia]);
 
   const discardUploadedMedia = useCallback(async () => {
-    const paths = entries.filter((entry): entry is NewMedia => entry.kind === "new" && Boolean(entry.storagePath)).map((entry) => entry.storagePath!);
-    if (paths.length > 0) await discardUnattachedCatalogMediaAction(area, paths);
+    const paths = new Set(temporaryPathsRef.current);
+    for (const entry of entries) {
+      if (entry.kind === "new" && entry.storagePath) paths.add(entry.storagePath);
+      if (entry.kind === "new" && entry.uploadTarget) paths.add(entry.uploadTarget.path);
+    }
+    if (paths.size === 0) return;
+    const pathsToDiscard = [...paths];
+    await discardUnattachedCatalogMediaAction(area, pathsToDiscard);
+    const discardedPaths = new Set(pathsToDiscard);
+    temporaryPathsRef.current.clear();
+    setEntries((current) => current.map((entry) => entry.kind === "new" && (
+      (entry.storagePath && discardedPaths.has(entry.storagePath))
+      || (entry.uploadTarget && discardedPaths.has(entry.uploadTarget.path))
+    )
+      ? { ...entry, storagePath: undefined, uploadTarget: undefined, progress: 0, status: "queued" }
+      : entry
+    ));
   }, [area, entries]);
 
   useImperativeHandle(ref, () => ({ prepareForSubmission, discardUploadedMedia }), [discardUploadedMedia, prepareForSubmission]);
