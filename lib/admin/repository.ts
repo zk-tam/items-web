@@ -388,7 +388,7 @@ export async function saveItem(input: ItemInput, id?: string) {
         )
       : await client.query<{ id: string }>(
           `insert into items (artist_id, slug, name, description, short_description, preview, specs, size, category, myr_price_cents, usd_price_cents, price_cents, currency, stock_count, order_message, is_published, archived_at, sort_order, seo_title, seo_description)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, case when $18 then now() else null end, $19, $20, $21) returning id`,
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, case when $17 then now() else null end, $18, $19, $20) returning id`,
           [artistIds[0], input.slug, input.name, input.description, input.shortDescription, JSON.stringify(input.preview), JSON.stringify(input.specs), input.size, input.category, input.myrPriceCents, input.usdPriceCents, legacyPriceCents, legacyCurrency, input.stockCount, input.orderMessage, isPublished, isArchived, sortOrder, input.seoTitle, input.seoDescription]
         );
     const itemId = result.rows[0]?.id;
